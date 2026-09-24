@@ -403,6 +403,15 @@ body {
 .finding--review { border-left-color: var(--review); }
 .finding:hover { background: var(--bg-hover); }
 
+/* The finding currently highlighted on the page. Without this, working
+   through a long list means losing your place every time you look away. */
+.finding--active {
+  background: var(--bg-hover);
+  border-color: var(--accent);
+  border-left-width: 5px;
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
 .finding__message { display: block; }
 
 .finding__snippet {

@@ -28,8 +28,8 @@ ROOT = Path(__file__).resolve().parent.parent
 SHOTS = ROOT / "store" / "screenshots"
 
 PANELS = [
-    ("panel.png", "Every issue, with the WCAG criterion it comes from",
-     "31 automated checks - contrast, labels, headings, ARIA, target size"),
+    ("panel.png", "Select a finding, see exactly which element it is",
+     "31 checks - contrast, labels, headings, ARIA, target size - each with its WCAG criterion"),
     ("panel-footer.png", "Honest about what automation cannot tell you",
      "Findings it cannot decide are flagged for review, never guessed"),
 ]

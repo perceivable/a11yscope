@@ -258,12 +258,20 @@ function renderFinding(finding, isReview) {
   hint.textContent = "Select to highlight on the page";
   button.append(hint);
 
-  button.addEventListener("click", () => highlight(finding, hint));
+  button.addEventListener("click", () => highlight(finding, button, hint));
   item.append(button);
   return item;
 }
 
-async function highlight(finding, hintNode) {
+async function highlight(finding, button, hintNode) {
+  // Only one finding is on screen at a time, so only one should look selected.
+  for (const other of els.results.querySelectorAll(".finding--active")) {
+    other.classList.remove("finding--active");
+    other.setAttribute("aria-current", "false");
+  }
+  button.classList.add("finding--active");
+  button.setAttribute("aria-current", "true");
+
   if (tabId === null) tabId = await activeTabId();
   const result = await chrome.runtime.sendMessage({
     type: "a11yscope:highlight",
@@ -274,8 +282,10 @@ async function highlight(finding, hintNode) {
     hintNode.textContent = result?.reason
       ? `Could not highlight: ${result.reason}`
       : "Could not highlight this element.";
+    button.classList.remove("finding--active");
+    button.setAttribute("aria-current", "false");
   } else {
-    hintNode.textContent = `Highlighted (${result.rect.width}×${result.rect.height}px)`;
+    hintNode.textContent = `Highlighted on the page (${result.rect.width}×${result.rect.height}px)`;
   }
 }
 

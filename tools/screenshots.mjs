@@ -11,6 +11,7 @@ import { readFile, mkdir, writeFile } from "node:fs/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, join } from "node:path";
 import puppeteer from "puppeteer";
+import { highlightElement } from "../src/content/highlight.js";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const outDir = join(root, "store", "screenshots");
@@ -50,12 +51,24 @@ try {
   await site.goto(pathToFileURL(join(root, "store", "demo-site.html")).href, {
     waitUntil: "load",
   });
-  await site.screenshot({ path: join(outDir, "page.png") });
 
   for (const file of DEPENDENCIES) {
     await site.evaluate(await readFile(join(root, file), "utf8"));
   }
   const report = await site.evaluate(await readFile(join(root, "src/content/engine.js"), "utf8"));
+
+  // Capture the page with a finding highlighted, not idle. The connection
+  // between "the panel says this" and "that element, there" is the whole
+  // product, and a screenshot of an untouched page does not show it.
+  const featured = report.rules
+    .find((rule) => rule.id === "input-label")
+    ?.violations[0];
+  if (!featured) throw new Error("demo page no longer trips input-label");
+
+  await site.evaluate(highlightElement, featured.selector);
+  // The overlay fades after 2.4s by design; capture inside that window.
+  await new Promise((resolve) => setTimeout(resolve, 250));
+  await site.screenshot({ path: join(outDir, "page.png") });
 
   // Make the URL presentable: a file:// path in a screenshot looks like a bug.
   report.url = "https://northbrook-dental.example/book";
@@ -101,6 +114,19 @@ try {
   await panel.click("#scan");
   await panel.waitForSelector(".rule", { timeout: 5000 });
   await new Promise((resolve) => setTimeout(resolve, 350)); // let layout settle
+
+  // Select the same finding that is highlighted on the page, so the two halves
+  // of the screenshot are visibly about the same element.
+  const selected = await panel.evaluate((needle) => {
+    const target = [...document.querySelectorAll(".finding")].find((el) =>
+      el.textContent.includes(needle)
+    );
+    if (!target) return false;
+    target.click();
+    return true;
+  }, "has only a placeholder");
+  if (!selected) throw new Error("could not find the placeholder finding in the panel");
+  await new Promise((resolve) => setTimeout(resolve, 200));
 
   await panel.screenshot({ path: join(outDir, "panel.png") });
 
