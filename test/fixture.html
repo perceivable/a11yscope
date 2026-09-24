@@ -1,0 +1,118 @@
+<!doctype html>
+<!-- Deliberately broken page. Every element below trips exactly one named rule,
+     so the test runner can assert that each check fires. Do not "fix" anything
+     here — the failures are the point. -->
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <!-- viewport-scalable -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, maximum-scale=1" />
+    <title>A11yScope rule fixture page</title>
+    <style>
+      body { font-family: sans-serif; background: #ffffff; color: #111111; }
+      .faint { color: #999999; }          /* contrast-text: 2.85:1 on white */
+      .ok-contrast { color: #111111; }    /* must not be reported */
+      .tiny { width: 16px; height: 16px; padding: 0; }
+      .toolbar { display: flex; gap: 2px; }   /* cramped on purpose */
+      .sr-only { position: absolute; left: -9999px; }
+    </style>
+  </head>
+  <body>
+    <h1>Fixture</h1>
+
+    <!-- img-alt -->
+    <img src="logo.png" width="40" height="40" />
+
+    <!-- img-alt-redundant -->
+    <img src="b.png" alt="banner.png" width="40" height="40" />
+
+    <!-- passes: decorative image, correctly marked -->
+    <img src="deco.png" alt="" width="10" height="10" />
+
+    <!-- input-label (no label at all) -->
+    <input type="text" name="nolabel" />
+
+    <!-- input-label (placeholder only) -->
+    <input type="text" name="placeholderonly" placeholder="Your name" />
+
+    <!-- passes: properly labelled -->
+    <label for="good-field">Email address</label>
+    <input type="text" id="good-field" name="good" />
+
+    <!-- autocomplete-attr -->
+    <input type="email" aria-label="Newsletter email" />
+
+    <!-- button-name (icon only, no accessible name) -->
+    <button><span aria-hidden="true">✕</span></button>
+
+    <!-- link-name -->
+    <a href="/somewhere"><img src="icon.png" width="24" height="24" /></a>
+
+    <!-- link-generic-text -->
+    <p class="ok-contrast">See the docs and then <a href="/docs">read more</a>.</p>
+
+    <!-- iframe-title -->
+    <iframe src="about:blank" width="120" height="60"></iframe>
+
+    <!-- contrast-text -->
+    <p class="faint">This grey paragraph fails the contrast requirement.</p>
+
+    <!-- heading-order: h1 above, then h4 -->
+    <h4>Skipped from h1 straight to h4</h4>
+
+    <!-- heading-empty -->
+    <h2></h2>
+
+    <!-- table-headers -->
+    <table>
+      <tr><td>Region</td><td>Revenue</td></tr>
+      <tr><td>EU</td><td>120</td></tr>
+    </table>
+
+    <!-- list-structure -->
+    <ul>
+      <li>Proper item</li>
+      <div>Stray div inside a list</div>
+    </ul>
+
+    <!-- duplicate-id, referenced by a label[for] -->
+    <label for="dupe">First control</label>
+    <input id="dupe" type="text" />
+    <input id="dupe" type="text" aria-label="Second control with the same id" />
+
+    <!-- tabindex-positive -->
+    <button tabindex="5">Jumps the queue</button>
+
+    <!-- aria-hidden-focusable -->
+    <div aria-hidden="true"><button>Hidden but reachable by keyboard</button></div>
+
+    <!-- nested-interactive -->
+    <a href="/outer">Outer link with <button>a button inside</button></a>
+
+    <!-- target-size: three 16px buttons packed together, so the 24px clearance
+         circles overlap and the spacing exception does not apply. A single
+         isolated small button would legitimately pass. -->
+    <div class="toolbar">
+      <button class="tiny" aria-label="Bold"></button>
+      <button class="tiny" aria-label="Italic"></button>
+      <button class="tiny" aria-label="Underline"></button>
+    </div>
+
+    <!-- autoplay-media -->
+    <audio autoplay src="tone.mp3"></audio>
+
+    <!-- media-captions (review) -->
+    <video width="120" height="60" src="clip.mp4"></video>
+
+    <!-- aria-role-valid -->
+    <div role="buton" tabindex="0">Misspelled role</div>
+
+    <!-- aria-required-attr -->
+    <div role="checkbox" tabindex="0">Custom checkbox with no state</div>
+
+    <!-- svg-name (review) -->
+    <svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="#1a56c4" /></svg>
+
+    <!-- No <main>, no skip link: landmark-main and skip-link both fire. -->
+  </body>
+</html>

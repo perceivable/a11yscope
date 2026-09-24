@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>A11yScope</title>
+    <link rel="stylesheet" href="panel.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <h1 class="topbar__title">A11yScope</h1>
+      <button id="scan" class="button button--primary" type="button">
+        Scan this page
+      </button>
+    </header>
+
+    <p id="status" class="status" role="status" aria-live="polite">
+      Open the page you want to check, then choose <strong>Scan this page</strong>.
+    </p>
+
+    <section id="summary" class="summary" aria-labelledby="summary-heading" hidden>
+      <h2 id="summary-heading" class="visually-hidden">Scan summary</h2>
+      <div class="tiles">
+        <div class="tile tile--fail">
+          <span class="tile__number" id="count-violations">0</span>
+          <span class="tile__label">Violations</span>
+        </div>
+        <div class="tile tile--review">
+          <span class="tile__number" id="count-review">0</span>
+          <span class="tile__label">Needs review</span>
+        </div>
+        <div class="tile tile--pass">
+          <span class="tile__number" id="count-passed">0</span>
+          <span class="tile__label">Checks passed</span>
+        </div>
+      </div>
+      <p class="meta" id="scan-meta"></p>
+    </section>
+
+    <div id="toolbar" class="toolbar" hidden>
+      <div class="filters" role="group" aria-label="Filter results">
+        <button class="chip chip--active" type="button" data-filter="all" aria-pressed="true">All</button>
+        <button class="chip" type="button" data-filter="violations" aria-pressed="false">Violations</button>
+        <button class="chip" type="button" data-filter="review" aria-pressed="false">Review</button>
+        <button class="chip" type="button" data-filter="passed" aria-pressed="false">Passed</button>
+      </div>
+      <button id="export" class="button button--ghost" type="button">
+        Export report
+        <span class="badge" id="export-badge">Pro</span>
+      </button>
+    </div>
+
+    <main id="results" class="results" aria-label="Scan results"></main>
+
+    <footer class="footer">
+      <p class="disclaimer">
+        <strong>Automated checks find roughly a third of accessibility
+        barriers.</strong> A clean scan is a good sign, not a compliance
+        certificate. Keyboard testing, screen reader testing and human judgement
+        are still required — and no tool can confirm conformance with the
+        European Accessibility Act on your behalf.
+      </p>
+      <p class="disclaimer disclaimer--muted">
+        Scans run only on the tab you click Scan on, and results never leave your
+        browser.
+      </p>
+    </footer>
+
+    <script src="panel.js" type="module"></script>
+  </body>
+</html>

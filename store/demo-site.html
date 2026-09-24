@@ -1,0 +1,102 @@
+<!doctype html>
+<!-- The page shown in the store screenshots. Written to look like an ordinary
+     small-business site rather than a test harness, with the kind of issues
+     that actually turn up in the wild: a missing label, thin grey helper text,
+     an icon button with no name, a heading level skipped for visual reasons. -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Northbrook Dental — Book an appointment</title>
+    <style>
+      :root { font-family: "Segoe UI", system-ui, sans-serif; }
+      body { margin: 0; color: #1d2126; background: #fbfcfd; }
+      header {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 18px 36px; border-bottom: 1px solid #e4e7ea; background: #fff;
+      }
+      .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; }
+      .brand span { color: #0f5c4a; }
+      nav a { margin-left: 20px; color: #3f4a55; text-decoration: none; font-size: 14px; }
+      .hero { padding: 44px 36px 28px; }
+      .hero h1 { margin: 0 0 10px; font-size: 34px; letter-spacing: -0.02em; }
+      .hero p { margin: 0; font-size: 16px; max-width: 52ch; color: #4a545e; }
+      .panel {
+        margin: 26px 36px; padding: 26px 30px; background: #fff;
+        border: 1px solid #e4e7ea; border-radius: 12px; max-width: 620px;
+      }
+      .panel h4 { margin: 0 0 16px; font-size: 19px; }
+      .row { margin-bottom: 15px; }
+      label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 5px; }
+      input, select {
+        width: 100%; padding: 9px 11px; font-size: 14px;
+        border: 1px solid #ccd2d8; border-radius: 7px; background: #fff;
+      }
+      .hint { font-size: 12px; color: #b2b8bf; margin-top: 4px; }
+      .submit {
+        background: #0f5c4a; color: #fff; border: 0; border-radius: 7px;
+        padding: 11px 22px; font-size: 15px; font-weight: 600; cursor: pointer;
+      }
+      .close {
+        background: none; border: 0; font-size: 17px; color: #6b747d; cursor: pointer;
+        width: 20px; height: 20px; padding: 0; line-height: 1;
+      }
+      .notice {
+        display: flex; align-items: center; justify-content: space-between;
+        margin: 0 36px; padding: 11px 16px; background: #eaf5f1;
+        border-radius: 9px; font-size: 14px;
+      }
+      footer { padding: 22px 36px 40px; font-size: 13px; color: #98a0a8; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="brand">Northbrook <span>Dental</span></div>
+      <nav>
+        <a href="/treatments">Treatments</a>
+        <a href="/team">Our team</a>
+        <a href="/contact">Contact</a>
+      </nav>
+    </header>
+
+    <section class="hero">
+      <h1>Book an appointment</h1>
+      <p>
+        We see new patients Monday to Saturday. Most routine appointments are
+        available within a week.
+      </p>
+    </section>
+
+    <div class="notice">
+      <span>Our Whitefield practice reopens on 2 October.</span>
+      <button class="close">✕</button>
+    </div>
+
+    <section class="panel">
+      <h4>Your details</h4>
+
+      <div class="row">
+        <label for="patient-name">Full name</label>
+        <input type="text" id="patient-name" />
+      </div>
+
+      <div class="row">
+        <input type="email" placeholder="Email address" />
+        <p class="hint">We only use this to confirm your appointment.</p>
+      </div>
+
+      <div class="row">
+        <label for="treatment">Treatment</label>
+        <select id="treatment">
+          <option>Routine check-up</option>
+          <option>Hygienist</option>
+          <option>Emergency</option>
+        </select>
+      </div>
+
+      <button class="submit">Request appointment</button>
+    </section>
+
+    <footer>Northbrook Dental · 14 Mill Road · Registered in England</footer>
+  </body>
+</html>

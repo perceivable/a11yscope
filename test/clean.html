@@ -1,0 +1,147 @@
+<!doctype html>
+<!-- A page that does things correctly. The test runner asserts ZERO violations
+     here, which is the check that actually matters: a scanner that cries wolf
+     on correct markup is worse than no scanner at all. -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Quarterly accessibility report — Example Co</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        background: #ffffff;
+        color: #16181c;   /* 16.6:1 on white */
+        margin: 0;
+        padding: 16px;
+      }
+      a { color: #12489e; }           /* 7.4:1 on white */
+      /* Standalone links get a 24px target; links inside prose are exempt
+         under WCAG 2.5.8 and are left to flow with the text. */
+      nav a {
+        display: inline-block;
+        min-height: 24px;
+        padding: 4px 2px;
+      }
+      .skip {
+        position: absolute;
+        left: -9999px;
+        display: inline-block;
+        min-height: 24px;
+        padding: 4px 8px;
+        background: #ffffff;
+      }
+      .skip:focus { left: 8px; }
+      button, .control {
+        min-width: 44px;
+        min-height: 44px;
+        font-size: 15px;
+        background: #12489e;
+        color: #ffffff;               /* 7.4:1 */
+        border: 1px solid #0d3572;
+        border-radius: 6px;
+      }
+      input, select {
+        min-height: 32px;
+        font-size: 15px;
+        color: #16181c;
+        background: #ffffff;
+        border: 1px solid #5a6069;
+      }
+      th, td { border: 1px solid #5a6069; padding: 6px 10px; text-align: left; }
+      /* Icon button: accessible text kept in the DOM, moved out of sight. */
+      .icon-button {
+        text-indent: -5000px;
+        overflow: hidden;
+        white-space: nowrap;
+        color: #7fa6de;          /* would fail contrast if it were painted */
+        position: relative;
+      }
+      .icon-button svg { text-indent: 0; position: absolute; inset: 0; margin: auto; }
+    </style>
+  </head>
+  <body>
+    <a class="skip" href="#content">Skip to main content</a>
+
+    <header>
+      <nav aria-label="Primary">
+        <ul>
+          <li><a href="/reports">Reports</a></li>
+          <li><a href="/settings">Settings</a></li>
+        </ul>
+      </nav>
+    </header>
+
+    <main id="content">
+      <h1>Quarterly accessibility report</h1>
+
+      <h2>Summary</h2>
+      <p>Three issues were resolved this quarter and one remains open.</p>
+
+      <img src="chart.png" alt="Bar chart: open issues fell from 12 in January to 1 in March." width="200" height="120" />
+
+      <h2>Subscribe to updates</h2>
+      <form action="/subscribe" method="post">
+        <label for="email">Email address</label>
+        <input type="email" id="email" name="email" autocomplete="email" />
+
+        <label for="team">Team</label>
+        <select id="team" name="team">
+          <option value="eng">Engineering</option>
+          <option value="design">Design</option>
+        </select>
+
+        <button type="submit">Subscribe</button>
+      </form>
+
+      <h2>Open issues</h2>
+      <table>
+        <caption>Issues by severity</caption>
+        <thead>
+          <tr><th scope="col">Severity</th><th scope="col">Count</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Serious</td><td>1</td></tr>
+          <tr><td>Moderate</td><td>0</td></tr>
+        </tbody>
+      </table>
+
+      <p>
+        Full methodology is described in
+        <a href="/methodology">our testing methodology</a>.
+      </p>
+
+      <!-- Regression guard: an icon-only link named by the aria-label on its
+           inner SVG. This is how most logo and social links are built, and an
+           earlier build reported it as "link has no discernible text". -->
+      <a href="https://example.com/partner" class="control">
+        <svg role="img" aria-label="Partner Corp" width="28" height="28" viewBox="0 0 28 28">
+          <rect x="4" y="4" width="20" height="20" rx="4" fill="#ffffff" />
+        </svg>
+      </a>
+
+      <button type="button" aria-label="Close notice">
+        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+          <path d="M3 3 L13 13 M13 3 L3 13" stroke="#ffffff" stroke-width="2" />
+        </svg>
+      </button>
+
+      <!-- Regression guard: the icon-button pattern where real text is kept for
+           screen readers and pushed out of sight. The text's colour against the
+           button has a poor ratio on paper, but it is never painted, so the
+           contrast rule must ignore it. This pattern is what made an earlier
+           build report a violation on gov.uk. -->
+      <button type="button" class="icon-button">
+        Search this site
+        <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true" focusable="false">
+          <circle cx="8" cy="8" r="5" fill="none" stroke="#ffffff" stroke-width="2" />
+          <path d="M12 12 L16 16" stroke="#ffffff" stroke-width="2" />
+        </svg>
+      </button>
+    </main>
+
+    <footer>
+      <p>Example Co</p>
+    </footer>
+  </body>
+</html>

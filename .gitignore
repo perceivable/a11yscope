@@ -1,0 +1,12 @@
+node_modules/
+dist/
+*.pem
+*.log
+.DS_Store
+
+# Screenshot intermediates — regenerate with tools/screenshots.mjs.
+# The composed store-*.png files are the deliverables and are tracked.
+store/screenshots/page.png
+store/screenshots/panel.png
+store/screenshots/panel-footer.png
+store/screenshots/report.json
