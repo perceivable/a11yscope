@@ -290,7 +290,9 @@
     impact: "moderate",
     help:
       "Grey-on-white placeholder text is one of the most common failures. " +
-      "Placeholders are content, so the 4.5:1 rule applies to them too.",
+      "Placeholders are content, so the 4.5:1 rule applies to them too. Note " +
+      "that a placeholder is not a label either — it disappears as soon as the " +
+      "user types.",
     run({ dom, color, elements }) {
       const found = [];
       for (const el of elements) {
@@ -299,17 +301,69 @@
         if (!placeholder || !placeholder.trim()) continue;
         if (!dom.isVisible(el) || dom.isAriaHidden(el)) continue;
 
-        // ::placeholder is not readable from getComputedStyle in a way we can
-        // rely on across engines, so report it as a manual check rather than
-        // inventing a number.
+        // Chrome exposes the ::placeholder computed colour, including its own
+        // default when the page sets none, so this is measurable rather than a
+        // question to hand back to the user.
+        let pseudo;
+        try {
+          pseudo = getComputedStyle(el, "::placeholder");
+        } catch {
+          pseudo = null;
+        }
+        const raw = pseudo && pseudo.color;
+        const fg = raw ? color.parseColor(raw) : null;
+        if (!fg) {
+          found.push({
+            el,
+            type: "review",
+            message:
+              `Placeholder "${placeholder.slice(0, 40)}" could not be measured — ` +
+              "this browser does not expose the ::placeholder colour. Check by hand.",
+          });
+          continue;
+        }
+
+        // Some engines dim the placeholder with opacity rather than colour.
+        const pseudoOpacity = pseudo.opacity === "" ? 1 : parseFloat(pseudo.opacity);
+        if (Number.isFinite(pseudoOpacity)) fg[3] *= pseudoOpacity;
+        if (fg[3] === 0) continue;
+
+        const style = getComputedStyle(el);
+        const fontSize = parseFloat(style.fontSize) || 16;
+        const required = color.requiredRatio(fontSize, style.fontWeight);
+
         const backdrop = resolveBackground(el, color);
+        if (backdrop.unresolved || backdrop.stops) {
+          found.push({
+            el,
+            type: "review",
+            message:
+              `Placeholder "${placeholder.slice(0, 40)}" sits on a background ` +
+              "that cannot be measured. Check it by hand.",
+            data: { required },
+          });
+          continue;
+        }
+
+        const flatFg = fg[3] < 1 ? color.flatten(fg, backdrop.color) : fg;
+        const ratio = color.contrastRatio(flatFg, backdrop.color);
+        if (ratio >= required) continue;
+
+        const toHex = (c) =>
+          "#" + c.slice(0, 3).map((v) => v.toString(16).padStart(2, "0")).join("");
+
         found.push({
           el,
-          type: "review",
           message:
-            `Placeholder "${placeholder.slice(0, 40)}" needs manual contrast ` +
-            "verification — ::placeholder colour cannot be read programmatically",
-          data: { background: backdrop.color ? backdrop.color : null },
+            `Placeholder "${placeholder.slice(0, 30)}" has contrast ${ratio}:1, ` +
+            `below the required ${required}:1 (${toHex(flatFg)} on ${toHex(backdrop.color)})`,
+          data: {
+            ratio,
+            required,
+            foreground: toHex(flatFg),
+            background: toHex(backdrop.color),
+            sample: placeholder.slice(0, 60),
+          },
         });
       }
       return found;

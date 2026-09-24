@@ -48,6 +48,8 @@
         background: #ffffff;
         border: 1px solid #5a6069;
       }
+      /* #595959 is 7.0:1 on white — comfortably above the 4.5:1 requirement. */
+      input::placeholder { color: #595959; opacity: 1; }
       th, td { border: 1px solid #5a6069; padding: 6px 10px; text-align: left; }
       /* Icon button: accessible text kept in the DOM, moved out of sight. */
       .icon-button {
@@ -102,7 +104,10 @@
       <h2>Subscribe to updates</h2>
       <form action="/subscribe" method="post">
         <label for="email">Email address</label>
-        <input type="email" id="email" name="email" autocomplete="email" />
+        <!-- A placeholder alongside a real label, at a colour that clears
+             4.5:1. Guards against the placeholder rule flagging correct use. -->
+        <input type="email" id="email" name="email" autocomplete="email"
+               placeholder="you@example.com" />
 
         <label for="team">Team</label>
         <select id="team" name="team">

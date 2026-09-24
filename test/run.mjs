@@ -32,6 +32,7 @@ const MUST_FIRE = [
   "link-name",
   "iframe-title",
   "contrast-text",
+  "contrast-placeholder",
   "doc-lang",
   "heading-order",
   "heading-empty",
