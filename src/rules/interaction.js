@@ -71,6 +71,13 @@
       for (const el of elements) {
         if (!dom.isFocusable(el)) continue;
         if (!el.closest('[aria-hidden="true"]')) continue;
+        // A control inside a `display: none` subtree is not in the tab order at
+        // all, so there is no mismatch to report — the browser skips it just as
+        // the screen reader does. Only a control the user can actually reach
+        // while it is hidden from assistive technology is a problem. Closed
+        // menus and unopened dialogs are the common case, and flagging them is
+        // how a scanner ends up telling Deque their own site is broken.
+        if (!dom.isVisible(el)) continue;
         found.push({ el, message: "Element is focusable but hidden from assistive technology" });
       }
       return found;

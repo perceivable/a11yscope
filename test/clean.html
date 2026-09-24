@@ -58,6 +58,16 @@
         position: relative;
       }
       .icon-button svg { text-indent: 0; position: absolute; inset: 0; margin: auto; }
+      /* A closed dropdown: not rendered, so not tabbable. */
+      .menu { display: none; }
+      /* #0d3572 is 11.9:1 against white, #12489e is 7.4:1 — both clear 4.5:1. */
+      .hero-gradient {
+        background: linear-gradient(90deg, #0d3572 0%, #12489e 100%);
+        color: #ffffff;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+      }
     </style>
   </head>
   <body>
@@ -71,6 +81,15 @@
         </ul>
       </nav>
     </header>
+
+    <!-- Regression guard: white text on a gradient whose every stop clears the
+         requirement. Clearing it at all stops clears it everywhere along the
+         gradient regardless of geometry, so this is a proof and must pass
+         silently — not land in "needs review" with the rest of the
+         unmeasurable backgrounds. -->
+    <div class="hero-gradient">
+      <p>Every stop on this gradient is dark enough for white text.</p>
+    </div>
 
     <main id="content">
       <h1>Quarterly accessibility report</h1>
@@ -110,6 +129,18 @@
         Full methodology is described in
         <a href="/methodology">our testing methodology</a>.
       </p>
+
+      <!-- Regression guard: a closed dropdown, hidden from assistive technology
+           and not rendered. Its controls are not in the tab order, so there is
+           no focusable-but-aria-hidden mismatch to report. An earlier build
+           flagged this pattern, which is how it told deque.com — who make axe —
+           that their own site had six violations. -->
+      <div class="menu" aria-hidden="true">
+        <ul>
+          <li><a href="/en">English</a></li>
+          <li><a href="/ko">한국어</a></li>
+        </ul>
+      </div>
 
       <!-- Regression guard: an icon-only link named by the aria-label on its
            inner SVG. This is how most logo and social links are built, and an

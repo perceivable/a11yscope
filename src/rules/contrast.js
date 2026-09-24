@@ -19,8 +19,40 @@
   const WHITE = [255, 255, 255, 1];
 
   /**
+   * Pull the colour stops out of a CSS gradient.
+   *
+   * Text over a gradient is usually reported as unmeasurable, which is honest
+   * but noisy — gradient headers are everywhere, and a page with one can
+   * produce dozens of "check this by hand" items. Yet the stops are right
+   * there in the computed value, and if the text clears the requirement
+   * against *every* stop then it clears it everywhere along the gradient,
+   * whatever the geometry. That is a proof, not a guess.
+   *
+   * Returns null when the value is not a pure gradient, mixes in a bitmap, or
+   * uses a translucent stop — in those cases the layers underneath matter and
+   * the honest answer is still "cannot measure".
+   */
+  function gradientStops(backgroundImage, color) {
+    if (!/gradient\(/i.test(backgroundImage)) return null;
+    if (/url\(/i.test(backgroundImage)) return null;
+
+    const tokens = backgroundImage.match(/rgba?\([^)]*\)|#[0-9a-f]{3,8}\b/gi);
+    if (!tokens || !tokens.length) return null;
+
+    const stops = [];
+    for (const token of tokens) {
+      const parsed = color.parseColor(token);
+      if (!parsed) return null;
+      if (parsed[3] < 1) return null; // needs the layers below; give up
+      stops.push(parsed);
+    }
+    return stops;
+  }
+
+  /**
    * Walk up from `el` compositing background layers until an opaque one is
-   * found. Returns either a flat colour or the reason it is unresolvable.
+   * found. Returns a flat colour, a set of gradient stops, or the reason it is
+   * unresolvable.
    */
   function resolveBackground(el, color) {
     const layers = [];
@@ -30,7 +62,9 @@
       const style = getComputedStyle(node);
 
       if (style.backgroundImage && style.backgroundImage !== "none") {
-        return { unresolved: "background image or gradient", element: node };
+        const stops = gradientStops(style.backgroundImage, color);
+        if (stops) return { stops, element: node };
+        return { unresolved: "background image", element: node };
       }
 
       const bg = color.parseColor(style.backgroundColor);
@@ -146,6 +180,44 @@
           continue;
         }
 
+        // Over a gradient: measure against every stop. Clearing the requirement
+        // at all of them clears it everywhere along the gradient, so that is a
+        // silent pass. Failing at one only means it might fail where the text
+        // happens to sit, which is a question for a person.
+        if (backdrop.stops) {
+          let worst = Infinity;
+          let worstStop = backdrop.stops[0];
+          for (const stop of backdrop.stops) {
+            const over = fg[3] < 1 ? color.flatten(fg, stop) : fg;
+            const stopRatio = color.contrastRatio(over, stop);
+            if (stopRatio < worst) {
+              worst = stopRatio;
+              worstStop = stop;
+            }
+          }
+          if (worst >= required) continue; // provably fine at every stop
+
+          const toHexStop = (c) =>
+            "#" + c.slice(0, 3).map((v) => v.toString(16).padStart(2, "0")).join("");
+          found.push({
+            el,
+            type: "review",
+            message:
+              `Over a gradient. Contrast falls to ${worst}:1 at the stop it ` +
+              `contrasts least with (${toHexStop(worstStop)}), below the required ` +
+              `${required}:1. Whether the text actually sits over that part of ` +
+              "the gradient depends on the layout — check by eye.",
+            data: {
+              ratio: worst,
+              required,
+              foreground: style.color,
+              background: toHexStop(worstStop),
+              sample: text.slice(0, 60),
+            },
+          });
+          continue;
+        }
+
         const flatFg = fg[3] < 1 ? color.flatten(fg, backdrop.color) : fg;
         const ratio = color.contrastRatio(flatFg, backdrop.color);
         if (ratio >= required) continue;
@@ -166,6 +238,26 @@
               `Text is the same colour as its background (${toHex(flatFg)}), so it ` +
               "is currently invisible. Check its contrast in the state where it " +
               "is actually shown.",
+            data: { ratio, required, foreground: toHex(flatFg), background: toHex(backdrop.color) },
+          });
+          continue;
+        }
+
+        // Near-white text resolved against a light background means the real
+        // backdrop was missed, not that someone shipped white on cream. The
+        // dark layer is usually a sibling — an absolutely positioned overlay —
+        // or a ::before, and neither is an ancestor, so walking up the tree
+        // cannot find it. Saying "1.11:1" here would be a confident wrong
+        // answer; saying what we could not see is the honest one.
+        if (color.luminance(flatFg) > 0.75 && color.luminance(backdrop.color) > 0.4) {
+          found.push({
+            el,
+            type: "review",
+            message:
+              `Light text (${toHex(flatFg)}) resolved against a light background ` +
+              `(${toHex(backdrop.color)}). There is probably a darker layer behind ` +
+              "it that cannot be read from the element's ancestors — a positioned " +
+              "overlay or a pseudo-element. Check this one by eye.",
             data: { ratio, required, foreground: toHex(flatFg), background: toHex(backdrop.color) },
           });
           continue;
