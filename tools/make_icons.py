@@ -53,15 +53,35 @@ def draw_icon(size: int) -> Image.Image:
     return image.resize((size, size), Image.LANCZOS)
 
 
+def store_icon() -> Image.Image:
+    """The Chrome Web Store listing icon.
+
+    Same mark, different framing. The store requires a 128x128 PNG whose
+    artwork occupies the central 96x96 with 16px of transparent padding on
+    every side — uploading a full-bleed 128x128 is rejected. The toolbar icons
+    keep the full canvas, because at 16px every pixel of the mark is needed.
+    """
+    canvas = Image.new("RGBA", (128, 128), (0, 0, 0, 0))
+    canvas.paste(draw_icon(96), (16, 16))
+    return canvas
+
+
 def main() -> None:
     from pathlib import Path
 
-    out_dir = Path(__file__).resolve().parent.parent / "icons"
+    root = Path(__file__).resolve().parent.parent
+    out_dir = root / "icons"
     out_dir.mkdir(exist_ok=True)
     for size in SIZES:
         path = out_dir / f"icon{size}.png"
         draw_icon(size).save(path, optimize=True)
         print(f"{path.name}  {path.stat().st_size:>5} bytes")
+
+    store_dir = root / "store" / "screenshots"
+    store_dir.mkdir(parents=True, exist_ok=True)
+    store_path = store_dir / "store-icon.png"
+    store_icon().save(store_path, optimize=True)
+    print(f"{store_path.name}  {store_path.stat().st_size:>5} bytes  (96x96 artwork, 16px padding)")
 
 
 if __name__ == "__main__":

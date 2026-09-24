@@ -5,9 +5,10 @@
   "description": "Chrome extension that checks pages against WCAG 2.2 AA",
   "type": "module",
   "scripts": {
-    "test": "node test/run.mjs",
+    "test": "node test/no-network.mjs && node test/run.mjs && node test/extension.mjs",
     "icons": "python3 tools/make_icons.py",
-    "package": "node tools/package.mjs"
+    "package": "node tools/package.mjs",
+    "test:privacy": "node test/no-network.mjs"
   },
   "devDependencies": {
     "puppeteer": "^24.0.0"
