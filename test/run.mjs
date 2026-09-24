@@ -132,6 +132,15 @@ try {
     }
   }
 
+  // A control that paints nothing has no target to measure. Reporting a
+  // zero dimension means the rule is describing a box, not a hit area.
+  const targetSize = brokenRules.get("target-size");
+  const degenerate = [...(targetSize?.violations ?? []), ...(targetSize?.review ?? [])]
+    .find((finding) => /[×x]\s*0px|\b0\s*[×x]/.test(finding.message));
+  if (degenerate) {
+    note(`target-size reported a zero-area target: ${degenerate.message}`);
+  }
+
   // The contrast rule must find the grey paragraph and leave the dark one be.
   const contrast = brokenRules.get("contrast-text");
   const matchedGrey = contrast?.violations.some((v) => v.data?.ratio && v.data.ratio < 3.2);

@@ -109,6 +109,37 @@
     "[role='checkbox'],[role='radio'],[role='switch'],[role='tab']";
 
   /**
+   * The area a pointer can actually hit.
+   *
+   * An element's own box is not the whole story: clicks on a descendant are
+   * routed to the enclosing link, so a wrapper with no height of its own is
+   * still hittable wherever its image or text lands. Taking the union keeps
+   * icon links measured correctly.
+   *
+   * When the union is still degenerate the control paints nothing — a
+   * collapsed menu, a panel yet to open — and reporting "320×0px, below the
+   * minimum" would be noise. The caller skips those.
+   */
+  function hitRect(el) {
+    const own = el.getBoundingClientRect();
+    let { left, top, right, bottom } = own;
+    let found = own.width > 0 && own.height > 0;
+
+    for (const child of el.querySelectorAll("*")) {
+      const rect = child.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) continue;
+      left = found ? Math.min(left, rect.left) : rect.left;
+      top = found ? Math.min(top, rect.top) : rect.top;
+      right = found ? Math.max(right, rect.right) : rect.right;
+      bottom = found ? Math.max(bottom, rect.bottom) : rect.bottom;
+      found = true;
+    }
+
+    if (!found) return null;
+    return { left, top, right, bottom, width: right - left, height: bottom - top };
+  }
+
+  /**
    * WCAG 2.5.8's spacing exception.
    *
    * An undersized target passes if a 24px-diameter circle centred on it does
@@ -164,7 +195,8 @@
         if (el.tagName === "INPUT" && (el.getAttribute("type") || "").toLowerCase() === "hidden") {
           continue;
         }
-        const rect = el.getBoundingClientRect();
+        const rect = hitRect(el);
+        if (!rect) continue; // paints nothing, so there is no target to measure
         targets.push({
           el,
           rect,

@@ -14,6 +14,7 @@
       .ok-contrast { color: #111111; }    /* must not be reported */
       .tiny { width: 16px; height: 16px; padding: 0; }
       .toolbar { display: flex; gap: 2px; }   /* cramped on purpose */
+      .collapsed { display: block; height: 0; overflow: hidden; }
       .sr-only { position: absolute; left: -9999px; }
     </style>
   </head>
@@ -97,6 +98,12 @@
       <button class="tiny" aria-label="Italic"></button>
       <button class="tiny" aria-label="Underline"></button>
     </div>
+
+    <!-- Regression guard: a collapsed link paints nothing, so target-size must
+         stay silent rather than reporting "320×0px, below the minimum". Found
+         on a11yproject.com, which is maintained by accessibility specialists —
+         a strong hint the finding was ours, not theirs. -->
+    <a href="/collapsed" class="collapsed">Inside a collapsed panel</a>
 
     <!-- autoplay-media -->
     <audio autoplay src="tone.mp3"></audio>
