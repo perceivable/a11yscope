@@ -52,6 +52,15 @@
   box-sizing: border-box;
 }
 
+/* The browser's own `[hidden] { display: none }` is a type selector and loses
+   to any class that sets display — so `.toolbar { display: flex }` quietly
+   un-hid the filter chips, and they showed before the first scan. Restating it
+   here with !important is the conventional fix and stops the whole class of
+   bug rather than this one instance. */
+[hidden] {
+  display: none !important;
+}
+
 body {
   margin: 0;
   font-family: var(--font);

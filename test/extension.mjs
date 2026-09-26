@@ -62,18 +62,34 @@ try {
       waitUntil: "networkidle0",
     });
 
-    const wired = await panel.evaluate(() => ({
-      title: document.title,
-      hasScanButton: !!document.getElementById("scan"),
-      hasResults: !!document.getElementById("results"),
-      chipCount: document.querySelectorAll(".chip").length,
-      disclaimerPresent: document.body.textContent.includes("roughly a third"),
-    }));
+    const wired = await panel.evaluate(() => {
+      // Anything marked hidden must actually be invisible. The browser's
+      // [hidden] rule loses to any class that sets display, which is how the
+      // filter chips once showed before the first scan had run.
+      const stillVisible = [...document.querySelectorAll("[hidden]")]
+        .filter((el) => {
+          const rect = el.getBoundingClientRect();
+          return rect.width > 0 || rect.height > 0;
+        })
+        .map((el) => el.id || el.className || el.tagName.toLowerCase());
+
+      return {
+        title: document.title,
+        hasScanButton: !!document.getElementById("scan"),
+        hasResults: !!document.getElementById("results"),
+        chipCount: document.querySelectorAll(".chip").length,
+        disclaimerPresent: document.body.textContent.includes("roughly a third"),
+        stillVisible,
+      };
+    });
 
     if (!wired.hasScanButton) problems.push("panel is missing the scan button");
     if (!wired.hasResults) problems.push("panel is missing the results region");
     if (wired.chipCount !== 4) problems.push(`expected 4 filter chips, found ${wired.chipCount}`);
     if (!wired.disclaimerPresent) problems.push("panel is missing the automated-testing disclaimer");
+    for (const id of wired.stillVisible) {
+      problems.push(`element marked [hidden] is rendered anyway: ${id}`);
+    }
 
     for (const error of consoleErrors) {
       problems.push(`panel console error: ${error}`);
