@@ -135,6 +135,29 @@
         <a href="/methodology">our testing methodology</a>.
       </p>
 
+      <!-- Regression guard: a web component whose label is slotted in from
+           light DOM. The <button> inside the shadow root has no children of
+           its own — only a <slot> — so a walker that reads childNodes sees an
+           unnamed button. This is how component libraries are built, and an
+           earlier build reported eight unnamed controls on shoelace.style. -->
+      <slotted-button>Download the report</slotted-button>
+      <script>
+        customElements.define(
+          "slotted-button",
+          class extends HTMLElement {
+            connectedCallback() {
+              if (this.shadowRoot) return;
+              const root = this.attachShadow({ mode: "open" });
+              root.innerHTML =
+                '<style>button{min-height:44px;min-width:44px;font-size:15px;' +
+                'background:#12489e;color:#fff;border:1px solid #0d3572;' +
+                'border-radius:6px;padding:8px 16px}</style>' +
+                '<button part="base" type="button"><slot></slot></button>';
+            }
+          }
+        );
+      </script>
+
       <!-- Regression guard: a closed dropdown, hidden from assistive technology
            and not rendered. Its controls are not in the tab order, so there is
            no focusable-but-aria-hidden mismatch to report. An earlier build

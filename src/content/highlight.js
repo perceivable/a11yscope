@@ -11,13 +11,34 @@ export function highlightElement(selector) {
   document.getElementById(OVERLAY_ID)?.remove();
   if (!selector) return { ok: false, reason: "no selector" };
 
-  let target;
+  // Paths cross shadow boundaries, marked with ">>>", because querySelector
+  // does not. Each segment is resolved inside the previous segment's shadow
+  // root. Without this, any finding inside a web component was reported and
+  // then could not be pointed at.
+  let target = null;
   try {
-    target = document.querySelector(selector);
+    let scope = document;
+    for (const segment of selector.split(">>>")) {
+      const step = segment.trim();
+      if (!step || !scope) {
+        target = null;
+        break;
+      }
+      target = scope.querySelector(step);
+      if (!target) break;
+      scope = target.shadowRoot;
+    }
   } catch {
     return { ok: false, reason: "invalid selector" };
   }
-  if (!target) return { ok: false, reason: "element is no longer on the page" };
+  if (!target) {
+    return {
+      ok: false,
+      reason: selector.includes(">>>")
+        ? "the component holding this element has changed since the scan"
+        : "element is no longer on the page",
+    };
+  }
 
   target.scrollIntoView({ block: "center", inline: "center", behavior: "smooth" });
 

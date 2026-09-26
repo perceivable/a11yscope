@@ -1,11 +1,11 @@
 {
   "name": "a11yscope",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "description": "Chrome extension that checks pages against WCAG 2.2 AA",
   "type": "module",
   "scripts": {
-    "test": "node test/no-network.mjs && node test/run.mjs && node test/extension.mjs",
+    "test": "node test/no-network.mjs && node test/run.mjs && node test/selectors.mjs && node test/extension.mjs",
     "icons": "python3 tools/make_icons.py",
     "package": "node tools/package.mjs",
     "test:privacy": "node test/no-network.mjs"

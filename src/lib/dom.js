@@ -119,7 +119,16 @@
     return "";
   }
 
-  /** Text content as a screen reader would flatten it. */
+  /**
+   * Text content as a screen reader would flatten it.
+   *
+   * Walks the *flattened* tree, not the DOM tree. Inside a web component's
+   * shadow root the label is usually not a child at all — the template holds
+   * a `<slot>`, and the text lives in light DOM waiting to be assigned to it.
+   * A walker that only reads childNodes sees an empty `<button>` and declares
+   * it nameless, which is how a scanner ends up reporting unnamed buttons all
+   * over a component library built by people who care about this.
+   */
   function textFrom(el) {
     if (!el) return "";
     let out = "";
@@ -128,6 +137,22 @@
         out += node.nodeValue;
       } else if (node.nodeType === Node.ELEMENT_NODE) {
         if (node.getAttribute("aria-hidden") === "true") continue;
+
+        // A slot renders whatever was assigned to it, or its fallback content
+        // when nothing was. assignedNodes({flatten: true}) returns exactly
+        // that, and resolves nested slots on the way.
+        if (node.tagName === "SLOT" && typeof node.assignedNodes === "function") {
+          for (const assigned of node.assignedNodes({ flatten: true })) {
+            if (assigned.nodeType === Node.TEXT_NODE) {
+              out += assigned.nodeValue;
+            } else if (assigned.nodeType === Node.ELEMENT_NODE) {
+              if (assigned.getAttribute("aria-hidden") === "true") continue;
+              const label = descendantLabel(assigned);
+              out += " " + (label || textFrom(assigned)) + " ";
+            }
+          }
+          continue;
+        }
 
         const label = descendantLabel(node);
         if (label) {
@@ -244,14 +269,8 @@
     return String(value).replace(/[^a-zA-Z0-9_-]/g, (c) => "\\" + c);
   }
 
-  /**
-   * Build a selector that uniquely identifies the element so the panel can
-   * re-find and highlight it after the DOM has been walked.
-   */
-  function selectorFor(el) {
-    if (el.id && el.ownerDocument.querySelectorAll(`#${cssEscape(el.id)}`).length === 1) {
-      return `#${cssEscape(el.id)}`;
-    }
+  /** One path segment, from `el` up to the root of its own tree. */
+  function pathWithinRoot(el) {
     const parts = [];
     let node = el;
     while (node && node.nodeType === Node.ELEMENT_NODE && parts.length < 8) {
@@ -264,13 +283,54 @@
         }
       }
       parts.unshift(part);
+
+      // An id is the shortest anchor available, but only when it actually
+      // identifies one element. Duplicate ids are common enough that we have a
+      // rule for them, and pointing the highlight at the wrong element is
+      // worse than not highlighting at all.
       if (node.id) {
-        parts.unshift(`#${cssEscape(node.id)}`);
-        break;
+        const scope = node.getRootNode();
+        const escaped = `#${cssEscape(node.id)}`;
+        if (scope.querySelectorAll(escaped).length === 1) {
+          // It replaces the tag name rather than sitting in front of it —
+          // `#content > main` describes two elements where there is one.
+          parts[0] = escaped;
+          break;
+        }
       }
       node = parent;
     }
     return parts.join(" > ");
+  }
+
+  /**
+   * Build a path that uniquely identifies the element so the panel can re-find
+   * and highlight it.
+   *
+   * Shadow roots break plain CSS selectors: querySelector does not cross into
+   * them, so a finding inside a web component could be reported and then not
+   * highlighted — the click appeared to do nothing. Segments are therefore
+   * joined with `>>>`, one per shadow boundary, and the highlighter steps
+   * through them.
+   */
+  const SHADOW_STEP = " >>> ";
+
+  function selectorFor(el) {
+    const segments = [];
+    let node = el;
+
+    while (node) {
+      const root = node.getRootNode();
+      if (root instanceof ShadowRoot) {
+        segments.unshift(pathWithinRoot(node));
+        node = root.host;
+        continue;
+      }
+      segments.unshift(pathWithinRoot(node));
+      break;
+    }
+
+    return segments.join(SHADOW_STEP);
   }
 
   /** Short opening-tag snippet for display in the results list. */
