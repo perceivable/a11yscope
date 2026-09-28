@@ -333,4 +333,9 @@ els.scan.addEventListener("click", runScan);
 (async () => {
   pro = await isPro();
   els.exportBadge.hidden = pro;
+
+  // The panel only opens because the user clicked the toolbar icon, which is
+  // also what grants access to the tab. Waiting for a second click to show
+  // anything would be asking them to say the same thing twice.
+  await runScan();
 })();
