@@ -99,6 +99,12 @@ try {
         `the message does not tell the user how to grant access: "${message.slice(0, 90)}"`
       );
     }
+    if (outcome?.code !== "needs-grant") {
+      problems.push(
+        `an ungranted page was not classified as needs-grant (got ${outcome?.code}), ` +
+          "so the panel would paint an instruction as an error"
+      );
+    }
     if (/Cannot access contents|must request permission/i.test(message)) {
       problems.push("Chrome's raw error text was shown to the user unmodified");
     }
@@ -111,6 +117,9 @@ try {
     problems.push(
       "openPanelOnActionClick is true — Chrome consumes the click that grants activeTab"
     );
+  }
+  if (!/a11yscope:granted/.test(source)) {
+    problems.push("an already-open panel is not told to rescan when the icon is clicked");
   }
   if (!/chrome\.action\.onClicked\.addListener/.test(source)) {
     problems.push("nothing handles the action click, so activeTab is never granted");

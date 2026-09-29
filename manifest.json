@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "A11yScope — Accessibility & WCAG Checker",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Find WCAG 2.2 AA and EAA accessibility issues on any page — contrast, labels, headings, ARIA — in one click. No account needed.",
   "minimum_chrome_version": "114",
   "permissions": [

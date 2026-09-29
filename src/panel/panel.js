@@ -37,12 +37,25 @@ async function activeTabId() {
   return tab?.id ?? null;
 }
 
-async function runScan() {
+let scanning = false;
+
+/** Put the panel back to "nothing scanned yet", with a message. */
+function clearResults(message, variant) {
+  report = null;
+  els.summary.hidden = true;
+  els.toolbar.hidden = true;
+  els.results.replaceChildren();
+  setStatus(message, variant);
+}
+
+async function runScan(targetTabId) {
+  if (scanning) return;
+  scanning = true;
   els.scan.disabled = true;
   setStatus("Scanning…", "busy");
 
   try {
-    tabId = await activeTabId();
+    tabId = targetTabId ?? (await activeTabId());
     if (tabId === null) {
       setStatus("No active tab found. Click a page first, then scan.", "error");
       return;
@@ -51,10 +64,11 @@ async function runScan() {
     const response = await chrome.runtime.sendMessage({ type: "a11yscope:scan", tabId });
 
     if (!response || response.error) {
-      setStatus(response?.error ?? "The scan failed for an unknown reason.", "error");
-      els.summary.hidden = true;
-      els.toolbar.hidden = true;
-      els.results.replaceChildren();
+      // Not having been granted access yet is the normal state of any page
+      // the user has not clicked the icon on. It is an instruction, not a
+      // failure, and painting it red made a working extension look broken.
+      const variant = response?.code === "needs-grant" ? "hint" : "error";
+      clearResults(response?.error ?? "The scan failed for an unknown reason.", variant);
       return;
     }
 
@@ -63,9 +77,33 @@ async function runScan() {
   } catch (error) {
     setStatus(String(error?.message ?? error), "error");
   } finally {
+    scanning = false;
     els.scan.disabled = false;
   }
 }
+
+// The toolbar icon was clicked while this panel was already open: access to
+// that tab has just been granted, so scan it rather than making the user click
+// Scan as well.
+chrome.runtime.onMessage.addListener((message) => {
+  if (message?.type === "a11yscope:granted") runScan(message.tabId);
+});
+
+// Results belong to one page. When the user switches tab, or the scanned tab
+// navigates, the old findings would describe something no longer on screen —
+// and the old grant no longer applies either.
+const NEXT_PAGE_HINT =
+  "Click the A11yScope icon in the toolbar to scan this page.";
+
+chrome.tabs.onActivated.addListener(({ tabId: activated }) => {
+  if (activated !== tabId) clearResults(NEXT_PAGE_HINT, "hint");
+});
+
+chrome.tabs.onUpdated.addListener((updated, change) => {
+  if (updated === tabId && change.status === "loading") {
+    clearResults(NEXT_PAGE_HINT, "hint");
+  }
+});
 
 function render() {
   if (!report) return;
@@ -328,7 +366,7 @@ els.exportButton.addEventListener("click", async () => {
 
 /* ---------- init ---------- */
 
-els.scan.addEventListener("click", runScan);
+els.scan.addEventListener("click", () => runScan());
 
 (async () => {
   pro = await isPro();

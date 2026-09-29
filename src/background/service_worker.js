@@ -47,6 +47,14 @@ chrome.action.onClicked.addListener(async (tab) => {
   } catch (error) {
     console.error("[A11yScope] could not open the side panel:", error);
   }
+
+  // If the panel was already open it does not reload, so it would sit there
+  // showing the old page's results while the user wonders why the click did
+  // nothing. Tell it to scan the tab that was just granted. A panel that is
+  // still loading scans on its own and simply is not listening yet.
+  chrome.runtime
+    .sendMessage({ type: "a11yscope:granted", tabId: tab.id })
+    .catch(() => {});
 });
 
 async function scanTab(tabId) {
@@ -65,7 +73,7 @@ chrome.runtime.onMessage.addListener((message, _sender, respond) => {
   if (message?.type === "a11yscope:scan") {
     scanTab(message.tabId)
       .then(respond)
-      .catch((error) => respond({ error: friendlyError(error) }));
+      .catch((error) => respond({ error: friendlyError(error), code: errorCode(error) }));
     return true; // keep the message channel open for the async reply
   }
 
@@ -83,6 +91,19 @@ chrome.runtime.onMessage.addListener((message, _sender, respond) => {
 
   return false;
 });
+
+/**
+ * Which kind of refusal this is. "needs-grant" is not a failure — the page is
+ * scannable, the user just has not clicked the icon on it yet — so the panel
+ * presents it as an instruction rather than an error.
+ */
+function errorCode(error) {
+  const text = String(error?.message ?? error);
+  if (text.includes("Cannot access contents") || text.includes("must request permission")) {
+    return "needs-grant";
+  }
+  return "failed";
+}
 
 /**
  * Turn Chrome's injection errors into something that tells the user what to do.
@@ -103,10 +124,9 @@ function friendlyError(error) {
   }
   if (text.includes("Cannot access contents") || text.includes("must request permission")) {
     return (
-      "A11yScope has not been given access to this tab yet. Click the " +
-      "A11yScope icon in the toolbar while this page is open, then scan again. " +
-      "Access lasts until you navigate away, and is never granted to pages you " +
-      "have not scanned."
+      "To scan this page, click the A11yScope icon in the toolbar. Chrome " +
+      "only lets the extension read a page after you click it there, so it " +
+      "never sees pages you have not asked it to check."
     );
   }
   if (text.includes("No tab with id")) {

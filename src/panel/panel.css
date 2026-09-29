@@ -176,6 +176,14 @@ body {
   color: var(--text-muted);
 }
 
+/* An instruction, not a failure: the page is fine, it just has not been
+   granted yet. Styled in the accent colour so it reads as the next step. */
+.status--hint {
+  color: var(--text);
+  background: var(--bg-raised);
+  border-left: 3px solid var(--accent);
+}
+
 .status--error {
   color: var(--fail);
   background: var(--fail-bg);
