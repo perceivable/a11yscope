@@ -46,9 +46,10 @@
       const title = (document.title || "").trim();
       const target = document.querySelector("title") || document.documentElement;
       if (!title) return [{ el: target, message: "<title> is missing or empty" }];
-      if (title.length < 4) {
-        return [{ el: target, message: `<title> "${title}" is too short to be descriptive` }];
-      }
+      // No length test. WCAG 2.4.2 asks that a title describe the page, not
+      // that it be long, and "토스" or "카카오" is a perfectly descriptive
+      // homepage title — two Hangul syllables carry what "Toss" does. An
+      // earlier character-count threshold failed most Korean homepages.
       if (/^(untitled|document|home|new page|index)$/i.test(title)) {
         return [{ el: target, message: `<title> "${title}" is a placeholder` }];
       }

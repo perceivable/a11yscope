@@ -153,6 +153,20 @@ try {
     note("contrast-text flagged #111111 on white, which passes easily");
   }
 
+  /* ---------- short non-Latin titles are descriptive ---------- */
+
+  // "토스", "카카오", "무신사": short in characters, complete as titles. A length
+  // threshold once flagged every one of them.
+  for (const title of ["토스", "카카오", "楽天", "IKEA"]) {
+    await page.setContent(`<!doctype html><html lang="ko"><head><title>${title}</title></head><body><main><h1>x</h1></main></body></html>`);
+    for (const file of DEPENDENCIES) await page.evaluate(await readFile(join(root, file), "utf8"));
+    const short = await page.evaluate(await readFile(join(root, "src/content/engine.js"), "utf8"));
+    const docTitle = short.rules.find((r) => r.id === "doc-title");
+    if (docTitle?.violations.length) {
+      note(`doc-title flagged the short but descriptive title "${title}": ${docTitle.violations[0].message}`);
+    }
+  }
+
   /* ---------- clean fixture: the false-positive test ---------- */
 
   const clean = await scan(page, "clean.html");
