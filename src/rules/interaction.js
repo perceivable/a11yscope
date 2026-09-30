@@ -84,6 +84,13 @@
     },
   });
 
+  /** `<tag>` or `<tag role="x">` — whichever identifies why it is interactive. */
+  function describe(node) {
+    const tag = node.tagName.toLowerCase();
+    const role = node.getAttribute("role");
+    return role ? `<${tag} role="${role}">` : `<${tag}>`;
+  }
+
   rules.set("nested-interactive", {
     id: "nested-interactive",
     title: "Interactive controls must not be nested",
@@ -104,7 +111,10 @@
         if (!parent) continue;
         found.push({
           el,
-          message: `<${el.tagName.toLowerCase()}> is nested inside <${parent.tagName.toLowerCase()}>`,
+          // Name the role when it is what makes the parent interactive: "<a>
+          // inside <li>" reads as nonsense, "<a> inside <li role="tab">" is the
+          // actual problem.
+          message: `${describe(el)} is nested inside ${describe(parent)}`,
         });
       }
       return found;
