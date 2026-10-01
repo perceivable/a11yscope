@@ -122,13 +122,36 @@
     }
     if (!rect) return false;
 
+    // The sr-only recipe (1px box, overflow hidden, clip: rect(0 0 0 0)) can
+    // leave a single pixel of overlap when the glyphs happen to start at the
+    // box corner, so a hairline does not count as painted. `clip` and a full
+    // clip-path inset hide the text outright, as does a transparent ancestor
+    // (closed dropdowns and hover panels fade in from opacity 0).
+    const HAIRLINE = 1;
+    const shows = (box) =>
+      Math.min(rect.right, box.right) - Math.max(rect.left, box.left) > HAIRLINE &&
+      Math.min(rect.bottom, box.bottom) - Math.max(rect.top, box.top) > HAIRLINE;
+
     for (let node = el; node && node.nodeType === Node.ELEMENT_NODE; node = node.parentElement) {
       const style = getComputedStyle(node);
-      if (style.overflowX === "visible" && style.overflowY === "visible") continue;
+      if (parseFloat(style.opacity) === 0) return false;
+      if (/^inset\((50|100)%\)$/.test(style.clipPath)) return false;
       const bounds = node.getBoundingClientRect();
-      const overlapX = Math.min(rect.right, bounds.right) - Math.max(rect.left, bounds.left);
-      const overlapY = Math.min(rect.bottom, bounds.bottom) - Math.max(rect.top, bounds.top);
-      if (overlapX <= 0 || overlapY <= 0) return false;
+      if ((style.position === "absolute" || style.position === "fixed") && /^rect\(/.test(style.clip)) {
+        const [t, r, b, l] = style.clip
+          .slice(5, -1)
+          .split(/[\s,]+/)
+          .map((v) => (v === "auto" ? null : parseFloat(v)));
+        const box = {
+          left: bounds.left + (l ?? 0),
+          top: bounds.top + (t ?? 0),
+          right: r == null ? bounds.right : bounds.left + r,
+          bottom: b == null ? bounds.bottom : bounds.top + b,
+        };
+        if (!shows(box)) return false;
+      }
+      if (style.overflowX === "visible" && style.overflowY === "visible") continue;
+      if (!shows(bounds)) return false;
     }
     return true;
   }

@@ -70,6 +70,10 @@
         border-radius: 8px;
         margin-bottom: 20px;
       }
+      /* Screen-reader-only recipes from 11st, naver and danawa: never painted. */
+      .blind { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); color: #bbb; }
+      .blind-path { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); color: #bbb; }
+      .faded { opacity: 0; color: #ccc; }
     </style>
   </head>
   <body>
@@ -197,6 +201,9 @@
           <path d="M12 12 L16 16" stroke="#ffffff" stroke-width="2" />
         </svg>
       </button>
+      <p><button type="button" style="min-width:44px;min-height:44px">▶<span class="blind">자동 재생 일시 정지</span></button>
+        <span class="blind-path">hidden label</span></p>
+      <div class="faded"><p>Hover panel that has not faded in yet</p></div>
     </main>
 
     <footer>
