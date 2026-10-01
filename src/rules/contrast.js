@@ -125,8 +125,7 @@
     // The sr-only recipe (1px box, overflow hidden, clip: rect(0 0 0 0)) can
     // leave a single pixel of overlap when the glyphs happen to start at the
     // box corner, so a hairline does not count as painted. `clip` and a full
-    // clip-path inset hide the text outright, as does a transparent ancestor
-    // (closed dropdowns and hover panels fade in from opacity 0).
+    // clip-path inset hide the text outright.
     const HAIRLINE = 1;
     const shows = (box) =>
       Math.min(rect.right, box.right) - Math.max(rect.left, box.left) > HAIRLINE &&
@@ -134,7 +133,6 @@
 
     for (let node = el; node && node.nodeType === Node.ELEMENT_NODE; node = node.parentElement) {
       const style = getComputedStyle(node);
-      if (parseFloat(style.opacity) === 0) return false;
       if (/^inset\((50|100)%\)$/.test(style.clipPath)) return false;
       const bounds = node.getBoundingClientRect();
       if ((style.position === "absolute" || style.position === "fixed") && /^rect\(/.test(style.clip)) {
@@ -176,7 +174,7 @@
         if (!text) continue;
         if (el.closest("svg")) continue; // svg uses fill, not color
         if (!dom.isVisible(el) || dom.isAriaHidden(el)) continue;
-        if (!textIsPainted(el)) continue;
+        if (!textIsPainted(el) || dom.isFadedOut(el)) continue;
 
         const style = getComputedStyle(el);
         const fg = color.parseColor(style.color);

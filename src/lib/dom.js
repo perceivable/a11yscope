@@ -73,6 +73,27 @@
     "video[controls]", "[contenteditable]", "[tabindex]",
   ].join(",");
 
+  /**
+   * Faded out of sight on purpose: a closed dropdown, an inactive carousel
+   * slide, a hover panel. Those sit at opacity 0 (often with pointer-events
+   * off) and nobody sees or clicks them.
+   *
+   * Scroll-reveal sections also start at opacity 0, but they fade in as soon
+   * as the reader scrolls to them — 11st keeps most of its homepage that way.
+   * Treating those as hidden skipped every real finding below the fold, so a
+   * transparent ancestor only counts while it is on screen, where it would
+   * already have been revealed.
+   */
+  function isFadedOut(el) {
+    if (getComputedStyle(el).pointerEvents === "none") return true;
+    for (let node = el; node && node.nodeType === Node.ELEMENT_NODE; node = node.parentElement) {
+      if (parseFloat(getComputedStyle(node).opacity) !== 0) continue;
+      const box = node.getBoundingClientRect();
+      return box.top < innerHeight;
+    }
+    return false;
+  }
+
   function isFocusable(el) {
     if (!el.matches(FOCUSABLE_SELECTOR)) return false;
     if (el.disabled) return false;
@@ -359,6 +380,7 @@
     isVisible,
     isAriaHidden,
     isVisuallyHiddenButExposed,
+    isFadedOut,
     isFocusable,
     accessibleName,
     textFrom,

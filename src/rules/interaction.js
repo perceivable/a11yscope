@@ -137,14 +137,56 @@
    * collapsed menu, a panel yet to open — and reporting "320×0px, below the
    * minimum" would be noise. The caller skips those.
    */
+  function hidesContent(style) {
+    return (
+      /^rect\(0(px)?,? 0(px)?,? 0(px)?,? 0(px)?\)$/.test(style.clip) ||
+      /^inset\((50|100)%\)$/.test(style.clipPath)
+    );
+  }
+
+  /**
+   * A descendant's box as far as it is actually painted inside `el`. Hidden
+   * text such as yes24's off-screen "blind" spans sits thousands of pixels
+   * away inside a 1px overflow:hidden box; unioning its raw box turned a small
+   * link into a giant phantom target that crowded out every neighbour.
+   */
+  function paintedBox(child, el) {
+    let { left, top, right, bottom } = child.getBoundingClientRect();
+    for (let node = child; node; node = node.parentElement) {
+      const style = getComputedStyle(node);
+      if (hidesContent(style)) return null;
+      if (node !== child && (style.overflowX !== "visible" || style.overflowY !== "visible")) {
+        const clip = node.getBoundingClientRect();
+        left = Math.max(left, clip.left);
+        top = Math.max(top, clip.top);
+        right = Math.min(right, clip.right);
+        bottom = Math.min(bottom, clip.bottom);
+      }
+      if (node === el) break;
+    }
+    if (right - left < 1 || bottom - top < 1) return null;
+    return { left, top, right, bottom };
+  }
+
   function hitRect(el) {
     const own = el.getBoundingClientRect();
     let { left, top, right, bottom } = own;
     let found = own.width > 0 && own.height > 0;
 
-    for (const child of el.querySelectorAll("*")) {
-      const rect = child.getBoundingClientRect();
-      if (rect.width === 0 || rect.height === 0) continue;
+    const parts = [...el.querySelectorAll("*")];
+    // A checkbox or radio is also hit through its label, as long as the label
+    // sits right next to it rather than somewhere else on the page.
+    if (el.tagName === "INPUT" && /^(checkbox|radio)$/i.test(el.type) && found) {
+      for (const label of el.labels || []) {
+        const box = label.getBoundingClientRect();
+        const gap = Math.max(box.left - own.right, own.left - box.right, box.top - own.bottom, own.top - box.bottom);
+        if (label.contains(el) || gap <= 8) parts.push(label);
+      }
+    }
+
+    for (const child of parts) {
+      const rect = paintedBox(child, child.contains(el) || !el.contains(child) ? child : el);
+      if (!rect) continue;
       left = found ? Math.min(left, rect.left) : rect.left;
       top = found ? Math.min(top, rect.top) : rect.top;
       right = found ? Math.max(right, rect.right) : rect.right;
@@ -209,6 +251,9 @@
         if (!el.matches(TARGET_SELECTOR)) continue;
         if (!dom.isVisible(el) || dom.isAriaHidden(el)) continue;
         if (el.disabled) continue;
+        // Closed dropdowns and inactive carousel slides are neither a target
+        // nor a neighbour.
+        if (dom.isFadedOut(el)) continue;
         if (el.tagName === "INPUT" && (el.getAttribute("type") || "").toLowerCase() === "hidden") {
           continue;
         }
