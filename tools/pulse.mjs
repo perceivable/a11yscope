@@ -6,14 +6,14 @@
  */
 import puppeteer from "puppeteer";
 
-const STORE = "https://chromewebstore.google.com/detail/ldbmeaihgdlghenedbhafkfikefnmicb";
+const STORE = "https://chromewebstore.google.com/detail/ldbmeaihgdlghenedbhafkfikefnmicb?hl=en";
 const POSTS = [
   ["velog", "https://velog.io/@perceivable/%EC%A0%91%EA%B7%BC%EC%84%B1-%EA%B2%80%EC%82%AC%EA%B8%B0%EB%A5%BC-%EB%A7%8C%EB%93%A4%EC%96%B4-gov.uk%EC%97%90-%EB%8F%8C%EB%A0%B8%EB%8D%94%EB%8B%88-72%EA%B1%B4%EC%9D%B4-%EB%82%98%EC%99%94%EB%8B%A4-%EC%A0%84%EB%B6%80-%EB%82%B4-%EB%B2%84%EA%B7%B8%EC%98%80%EB%8B%A4"],
 ];
 const DEVTO = [4795578];
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36";
 
-const browser = await puppeteer.launch({ headless: true, args: ["--no-sandbox", "--disable-dev-shm-usage"] });
+const browser = await puppeteer.launch({ headless: true, args: ["--no-sandbox", "--disable-dev-shm-usage", "--lang=en-US"] });
 try {
   const page = await browser.newPage();
   await page.setUserAgent(UA);
