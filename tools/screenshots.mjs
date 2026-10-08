@@ -16,6 +16,12 @@ import { highlightElement } from "../src/content/highlight.js";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const outDir = join(root, "store", "screenshots");
 
+// `--lang=ko` renders the panel in Korean and writes panel.ko.png instead;
+// the default pins English so the store set does not follow the machine's
+// locale.
+const LANG = process.argv.find((arg) => arg.startsWith("--lang="))?.slice(7) ?? "en";
+const SUFFIX = LANG === "en" ? "" : `.${LANG}`;
+
 const PAGE_WIDTH = 880;
 const PANEL_WIDTH = 400;
 const HEIGHT = 800;
@@ -107,7 +113,7 @@ try {
     };
   }, report);
 
-  await panel.goto(`chrome-extension://${extensionId}/src/panel/panel.html`, {
+  await panel.goto(`chrome-extension://${extensionId}/src/panel/panel.html?lang=${LANG}`, {
     waitUntil: "networkidle0",
   });
 
@@ -124,11 +130,11 @@ try {
     if (!target) return false;
     target.click();
     return true;
-  }, "has only a placeholder");
+  }, LANG === "ko" ? "만 있습니다" : "has only a placeholder");
   if (!selected) throw new Error("could not find the placeholder finding in the panel");
   await new Promise((resolve) => setTimeout(resolve, 200));
 
-  await panel.screenshot({ path: join(outDir, "panel.png") });
+  await panel.screenshot({ path: join(outDir, `panel${SUFFIX}.png`) });
 
   // A second panel state: the footer, where the limits are stated. Being
   // up-front about what the tool cannot do belongs in the store listing too.
@@ -136,7 +142,7 @@ try {
     document.querySelector(".footer")?.scrollIntoView({ block: "end" });
   });
   await new Promise((resolve) => setTimeout(resolve, 250));
-  await panel.screenshot({ path: join(outDir, "panel-footer.png") });
+  await panel.screenshot({ path: join(outDir, `panel-footer${SUFFIX}.png`) });
 
   const rendered = await panel.evaluate(() => ({
     rules: document.querySelectorAll(".rule").length,

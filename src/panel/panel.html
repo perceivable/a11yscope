@@ -9,58 +9,58 @@
   <body>
     <header class="topbar">
       <h1 class="topbar__title">A11yScope</h1>
-      <button id="scan" class="button button--primary" type="button">
+      <button id="scan" class="button button--primary" type="button" data-i18n="scan">
         Scan this page
       </button>
     </header>
 
-    <p id="status" class="status" role="status" aria-live="polite">
+    <p id="status" class="status" role="status" aria-live="polite" data-i18n="preparing">
       Preparing to scan…
     </p>
 
     <section id="summary" class="summary" aria-labelledby="summary-heading" hidden>
-      <h2 id="summary-heading" class="visually-hidden">Scan summary</h2>
+      <h2 id="summary-heading" class="visually-hidden" data-i18n="summary-heading">Scan summary</h2>
       <div class="tiles">
         <div class="tile tile--fail">
           <span class="tile__number" id="count-violations">0</span>
-          <span class="tile__label">Violations</span>
+          <span class="tile__label" data-i18n="violations">Violations</span>
         </div>
         <div class="tile tile--review">
           <span class="tile__number" id="count-review">0</span>
-          <span class="tile__label">Needs review</span>
+          <span class="tile__label" data-i18n="needs-review">Needs review</span>
         </div>
         <div class="tile tile--pass">
           <span class="tile__number" id="count-passed">0</span>
-          <span class="tile__label">Checks passed</span>
+          <span class="tile__label" data-i18n="checks-passed">Checks passed</span>
         </div>
       </div>
       <p class="meta" id="scan-meta"></p>
     </section>
 
     <div id="toolbar" class="toolbar" hidden>
-      <div class="filters" role="group" aria-label="Filter results">
-        <button class="chip chip--active" type="button" data-filter="all" aria-pressed="true">All</button>
-        <button class="chip" type="button" data-filter="violations" aria-pressed="false">Violations</button>
-        <button class="chip" type="button" data-filter="review" aria-pressed="false">Review</button>
-        <button class="chip" type="button" data-filter="passed" aria-pressed="false">Passed</button>
+      <div class="filters" role="group" aria-label="Filter results" data-i18n-label="filter-label">
+        <button class="chip chip--active" type="button" data-filter="all" aria-pressed="true" data-i18n="filter-all">All</button>
+        <button class="chip" type="button" data-filter="violations" aria-pressed="false" data-i18n="filter-violations">Violations</button>
+        <button class="chip" type="button" data-filter="review" aria-pressed="false" data-i18n="filter-review">Review</button>
+        <button class="chip" type="button" data-filter="passed" aria-pressed="false" data-i18n="filter-passed">Passed</button>
       </div>
       <button id="export" class="button button--ghost" type="button">
-        Export report
+        <span data-i18n="export">Export report</span>
         <span class="badge" id="export-badge">Pro</span>
       </button>
     </div>
 
-    <main id="results" class="results" aria-label="Scan results"></main>
+    <main id="results" class="results" aria-label="Scan results" data-i18n-label="results-label"></main>
 
     <footer class="footer">
       <p class="disclaimer">
-        <strong>Automated checks find roughly a third of accessibility
-        barriers.</strong> A clean scan is a good sign, not a compliance
+        <strong data-i18n="disclaimer-strong">Automated checks find roughly a third of accessibility
+        barriers.</strong><span data-i18n="disclaimer"> A clean scan is a good sign, not a compliance
         certificate. Keyboard testing, screen reader testing and human judgement
         are still required — and no tool can confirm conformance with the
-        European Accessibility Act on your behalf.
+        European Accessibility Act on your behalf.</span>
       </p>
-      <p class="disclaimer disclaimer--muted">
+      <p class="disclaimer disclaimer--muted" data-i18n="disclaimer-muted">
         Scans run only on the tab you click Scan on, and results never leave your
         browser.
       </p>

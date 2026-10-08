@@ -28,11 +28,13 @@
         if (el.hasAttribute("alt")) continue;
         if (el.getAttribute("role") === "presentation" || el.getAttribute("role") === "none") continue;
         if (el.getAttribute("aria-label") || el.getAttribute("aria-labelledby")) continue;
-        const src = el.getAttribute("src") || "";
+        const src = (el.getAttribute("src") || "").split("/").pop().slice(0, 40);
         found.push({
           el,
+          key: src ? "img-alt.missing-src" : "img-alt.missing",
+          data: { src },
           message: src
-            ? `<img> has no alt attribute (src: ${src.split("/").pop().slice(0, 40)})`
+            ? `<img> has no alt attribute (src: ${src})`
             : "<img> has no alt attribute",
         });
       }
@@ -60,9 +62,19 @@
         const alt = (el.getAttribute("alt") || "").trim();
         if (!alt) continue;
         if (filePattern.test(alt)) {
-          found.push({ el, message: `alt text looks like a file name: "${alt}"` });
+          found.push({
+            el,
+            key: "img-alt-redundant.filename",
+            data: { alt },
+            message: `alt text looks like a file name: "${alt}"`,
+          });
         } else if (fillerPattern.test(alt)) {
-          found.push({ el, message: `alt text is not descriptive: "${alt}"` });
+          found.push({
+            el,
+            key: "img-alt-redundant.filler",
+            data: { alt },
+            message: `alt text is not descriptive: "${alt}"`,
+          });
         }
       }
       return found;
@@ -94,6 +106,8 @@
         const placeholder = el.getAttribute("placeholder");
         found.push({
           el,
+          key: placeholder ? "input-label.placeholder-only" : "input-label.missing",
+          data: { tag: tag.toLowerCase(), placeholder },
           message: placeholder
             ? `<${tag.toLowerCase()}> has only a placeholder ("${placeholder}"), which is not a label`
             : `<${tag.toLowerCase()}> has no accessible label`,
@@ -122,7 +136,7 @@
         if (!isButton) continue;
         if (!dom.isVisible(el) || dom.isAriaHidden(el)) continue;
         if (dom.accessibleName(el)) continue;
-        found.push({ el, message: "Button has no accessible name" });
+        found.push({ el, key: "button-name.missing", message: "Button has no accessible name" });
       }
       return found;
     },
@@ -144,7 +158,7 @@
         if (!isLink) continue;
         if (!dom.isVisible(el) || dom.isAriaHidden(el)) continue;
         if (dom.accessibleName(el)) continue;
-        found.push({ el, message: "Link has no discernible text" });
+        found.push({ el, key: "link-name.missing", message: "Link has no discernible text" });
       }
       return found;
     },
@@ -181,6 +195,8 @@
         found.push({
           el,
           type: "review",
+          key: "link-generic-text.generic",
+          data: { name: dom.accessibleName(el) },
           message:
             `Link text "${dom.accessibleName(el)}" does not describe its ` +
             "destination on its own. Check whether the surrounding context makes " +
@@ -210,11 +226,13 @@
         // demanding a title on one is noise, not a finding.
         if (!dom.isVisible(el)) continue;
         if (dom.accessibleName(el)) continue;
-        const src = el.getAttribute("src") || "";
+        const src = (el.getAttribute("src") || "").slice(0, 50);
         found.push({
           el,
+          key: src ? "iframe-title.missing-src" : "iframe-title.missing",
+          data: { src },
           message: src
-            ? `<iframe> has no title (src: ${src.slice(0, 50)})`
+            ? `<iframe> has no title (src: ${src})`
             : "<iframe> has no title",
         });
       }
@@ -247,6 +265,7 @@
         found.push({
           el,
           type: "review",
+          key: "svg-name.missing",
           message: "<svg> has no accessible name and is not marked decorative",
         });
       }

@@ -1,0 +1,14 @@
+{
+  "appName": {
+    "message": "A11yScope — Accessibility & WCAG Checker",
+    "description": "Extension name, 45 characters at most."
+  },
+  "appDescription": {
+    "message": "Find WCAG 2.2 AA and EAA accessibility issues on any page — contrast, labels, headings, ARIA — in one click. No account needed.",
+    "description": "Extension description, 132 characters at most."
+  },
+  "actionTitle": {
+    "message": "Scan this page with A11yScope",
+    "description": "Tooltip on the toolbar icon."
+  }
+}

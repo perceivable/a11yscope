@@ -10,6 +10,7 @@ import { readFile } from "node:fs/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, join } from "node:path";
 import puppeteer from "puppeteer";
+import { DICTIONARIES, translator } from "../src/panel/i18n.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..");
@@ -197,6 +198,81 @@ try {
       }
     }
   }
+
+  /* ---------- the clean fixture must still be able to fail ---------- */
+
+  // A zero-violation page proves nothing if the scanner would stay quiet
+  // whatever the page did. So break one regression guard in the way the real
+  // bug appears: the closed menu stays aria-hidden but is now rendered and
+  // pushed off-canvas, where its links are back in the tab order. The same
+  // rule that correctly ignored it a moment ago must now report both links.
+  await page.evaluate(() => {
+    const menu = document.querySelector(".menu");
+    // Fixed, like a real off-canvas drawer, so the rest of the page keeps its
+    // layout and the only thing that changed is the menu.
+    menu.style.cssText = "display:block;position:fixed;top:0;left:0;transform:translateX(-200%)";
+  });
+  for (const file of DEPENDENCIES) await page.evaluate(await readFile(join(root, file), "utf8"));
+  const broken2 = await page.evaluate(await readFile(join(root, "src/content/engine.js"), "utf8"));
+  const offCanvas = broken2.rules.find((r) => r.id === "aria-hidden-focusable");
+  if ((offCanvas?.violations.length ?? 0) !== 2) {
+    note(
+      "aria-hidden-focusable stayed quiet on an off-canvas, still-tabbable menu " +
+        `(expected 2 violations, got ${offCanvas?.violations.length ?? 0}) — ` +
+        "the clean fixture's silence is not evidence of anything"
+    );
+  }
+  const otherNew = broken2.rules.filter(
+    (r) => r.id !== "aria-hidden-focusable" && r.violations.length > 0
+  );
+  for (const rule of otherNew) {
+    note(`moving the menu off-canvas also tripped ${rule.id}: ${rule.violations[0].message}`);
+  }
+
+  /* ---------- Korean: every rule and every message has a translation ---------- */
+
+  const ko = translator("ko");
+  for (const rule of broken.rules) {
+    const entry = DICTIONARIES.ko.rules[rule.id];
+    if (!entry?.title || !entry?.help) note(`ko: rule "${rule.id}" has no title/help`);
+  }
+
+  // Keys the fixtures happen to trip are not the whole set, so read the rule
+  // sources for every key literal and require an entry for each. The one
+  // computed key (contrast-text.unmeasured-*) is spelled out by hand.
+  const keyLiterals = new Set(["contrast-text.unmeasured-image", "contrast-text.unmeasured-unparseable"]);
+  for (const file of DEPENDENCIES.filter((f) => f.startsWith("src/rules/"))) {
+    const source = await readFile(join(root, file), "utf8");
+    for (const match of source.matchAll(/key: "([^"]+)"/g)) keyLiterals.add(match[1]);
+    for (const match of source.matchAll(/key: \w+ \? "([^"]+)" : "([^"]+)"/g)) {
+      keyLiterals.add(match[1]);
+      keyLiterals.add(match[2]);
+    }
+  }
+  for (const key of keyLiterals) {
+    if (!DICTIONARIES.ko.messages[key]) note(`ko: message key "${key}" has no translation`);
+  }
+  for (const key of Object.keys(DICTIONARIES.ko.messages)) {
+    if (!keyLiterals.has(key)) note(`ko: translation "${key}" matches no key in the rules`);
+  }
+
+  // Every finding that actually fired must carry a key, and the Korean
+  // rendering must have consumed every placeholder.
+  for (const report of [broken, clean, broken2]) {
+    for (const rule of report.rules) {
+      for (const finding of [...rule.violations, ...rule.review]) {
+        if (!finding.key) {
+          note(`finding from ${rule.id} has no key: ${finding.message}`);
+          continue;
+        }
+        const rendered = ko.finding(finding);
+        if (rendered === finding.message) note(`ko: ${finding.key} fell back to English`);
+        const leftover = rendered.match(/\{\w+\}/);
+        if (leftover) note(`ko: ${finding.key} left ${leftover[0]} unfilled: ${rendered}`);
+      }
+    }
+  }
+  console.log(`korean        → ${Object.keys(DICTIONARIES.ko.rules).length} rules, ${keyLiterals.size} message keys`);
 
   /* ---------- report ---------- */
 

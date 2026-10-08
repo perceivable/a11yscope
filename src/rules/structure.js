@@ -21,12 +21,17 @@
       const html = document.documentElement;
       const lang = (html.getAttribute("lang") || "").trim();
       if (!lang) {
-        return [{ el: html, message: "<html> has no lang attribute" }];
+        return [{ el: html, key: "doc-lang.missing", message: "<html> has no lang attribute" }];
       }
       // A primary subtag is 2-3 letters; anything else is likely a typo such as
       // lang="english".
       if (!/^[a-z]{2,3}(-[a-zA-Z0-9]{2,8})*$/i.test(lang)) {
-        return [{ el: html, message: `<html lang="${lang}"> is not a valid language tag` }];
+        return [{
+          el: html,
+          key: "doc-lang.invalid",
+          data: { lang },
+          message: `<html lang="${lang}"> is not a valid language tag`,
+        }];
       }
       return [];
     },
@@ -45,13 +50,20 @@
     run({ document }) {
       const title = (document.title || "").trim();
       const target = document.querySelector("title") || document.documentElement;
-      if (!title) return [{ el: target, message: "<title> is missing or empty" }];
+      if (!title) {
+        return [{ el: target, key: "doc-title.missing", message: "<title> is missing or empty" }];
+      }
       // No length test. WCAG 2.4.2 asks that a title describe the page, not
       // that it be long, and "토스" or "카카오" is a perfectly descriptive
       // homepage title — two Hangul syllables carry what "Toss" does. An
       // earlier character-count threshold failed most Korean homepages.
       if (/^(untitled|document|home|new page|index)$/i.test(title)) {
-        return [{ el: target, message: `<title> "${title}" is a placeholder` }];
+        return [{
+          el: target,
+          key: "doc-title.placeholder",
+          data: { title },
+          message: `<title> "${title}" is a placeholder`,
+        }];
       }
       return [];
     },
@@ -79,6 +91,8 @@
         if (previous && level > previous + 1) {
           found.push({
             el,
+            key: "heading-order.skip",
+            data: { from: previous, to: level },
             message: `Heading level jumps from h${previous} to h${level}`,
           });
         }
@@ -103,7 +117,12 @@
         if (!/^H[1-6]$/.test(el.tagName) && el.getAttribute("role") !== "heading") continue;
         if (!dom.isVisible(el) || dom.isAriaHidden(el)) continue;
         if (dom.accessibleName(el)) continue;
-        found.push({ el, message: `<${el.tagName.toLowerCase()}> is empty` });
+        found.push({
+          el,
+          key: "heading-empty.empty",
+          data: { tag: el.tagName.toLowerCase() },
+          message: `<${el.tagName.toLowerCase()}> is empty`,
+        });
       }
       return found;
     },
@@ -123,11 +142,17 @@
         (el) => el.tagName === "H1" && dom.isVisible(el) && !dom.isAriaHidden(el)
       );
       if (h1s.length === 0) {
-        return [{ el: document.body || document.documentElement, message: "Page has no <h1>" }];
+        return [{
+          el: document.body || document.documentElement,
+          key: "page-has-h1.none",
+          message: "Page has no <h1>",
+        }];
       }
       if (h1s.length > 1) {
         return h1s.slice(1).map((el) => ({
           el,
+          key: "page-has-h1.multiple",
+          data: { count: h1s.length },
           message: `Page has ${h1s.length} <h1> elements; only the first should be top level`,
         }));
       }
@@ -151,12 +176,15 @@
       if (mains.length === 0) {
         return [{
           el: document.body || document.documentElement,
+          key: "landmark-main.none",
           message: "No <main> element or role=\"main\" on the page",
         }];
       }
       if (mains.length > 1) {
         return mains.slice(1).map((el) => ({
           el,
+          key: "landmark-main.multiple",
+          data: { count: mains.length },
           message: `Page has ${mains.length} main landmarks; there should be one`,
         }));
       }
@@ -190,6 +218,7 @@
       return [{
         el: document.body || document.documentElement,
         type: "review",
+        key: hasLandmark ? "skip-link.none" : "skip-link.none-no-main",
         message: hasLandmark
           ? "No skip link found. Verify keyboard users can bypass the navigation."
           : "No skip link and no main landmark found. Keyboard users cannot bypass repeated content.",
@@ -223,6 +252,8 @@
 
         found.push({
           el,
+          key: "table-headers.none",
+          data: { rows: rows.length },
           message: `Table with ${rows.length} rows has no <th> header cells`,
         });
       }
@@ -249,6 +280,8 @@
         if (!strays.length) continue;
         found.push({
           el,
+          key: "list-structure.stray",
+          data: { tag: el.tagName.toLowerCase(), child: strays[0].tagName.toLowerCase() },
           message:
             `<${el.tagName.toLowerCase()}> contains ` +
             `<${strays[0].tagName.toLowerCase()}> as a direct child instead of <li>`,
@@ -296,6 +329,8 @@
         if (!referenced.has(id)) continue;
         found.push({
           el: list[1],
+          key: "duplicate-id.referenced",
+          data: { id, count: list.length },
           message: `id="${id}" appears ${list.length} times and is referenced by ARIA or a label`,
         });
       }

@@ -1,8 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "A11yScope — Accessibility & WCAG Checker",
-  "version": "0.2.3",
-  "description": "Find WCAG 2.2 AA and EAA accessibility issues on any page — contrast, labels, headings, ARIA — in one click. No account needed.",
+  "name": "__MSG_appName__",
+  "version": "0.3.0",
+  "description": "__MSG_appDescription__",
+  "default_locale": "en",
   "minimum_chrome_version": "114",
   "permissions": [
     "activeTab",
@@ -11,7 +12,7 @@
     "storage"
   ],
   "action": {
-    "default_title": "Scan this page with A11yScope",
+    "default_title": "__MSG_actionTitle__",
     "default_icon": {
       "16": "icons/icon16.png",
       "32": "icons/icon32.png",

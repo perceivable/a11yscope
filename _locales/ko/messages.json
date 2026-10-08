@@ -1,0 +1,14 @@
+{
+  "appName": {
+    "message": "A11yScope — 웹 접근성·WCAG 검사기",
+    "description": "Extension name, 45 characters at most."
+  },
+  "appDescription": {
+    "message": "어떤 페이지든 클릭 한 번으로 WCAG 2.2 AA 접근성 문제를 찾습니다. 명도 대비, 레이블, 제목, ARIA. 계정 불필요.",
+    "description": "Extension description, 132 characters at most."
+  },
+  "actionTitle": {
+    "message": "A11yScope로 이 페이지 검사",
+    "description": "Tooltip on the toolbar icon."
+  }
+}

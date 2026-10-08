@@ -6,6 +6,22 @@
  */
 import { isPro } from "../lib/license.js";
 import { buildReport } from "./report.js";
+import { detectLocale, translator } from "./i18n.js";
+
+const t = translator(detectLocale());
+
+// The HTML ships in English. Anything marked data-i18n is swapped here, once,
+// before the first paint the user sees; when there is no dictionary for the
+// browser's language, nothing moves.
+if (t.locale !== "en") {
+  document.documentElement.lang = t.locale;
+  for (const el of document.querySelectorAll("[data-i18n]")) {
+    el.textContent = t.ui(el.dataset.i18n, null, el.textContent);
+  }
+  for (const el of document.querySelectorAll("[data-i18n-label]")) {
+    el.setAttribute("aria-label", t.ui(el.dataset.i18nLabel, null, el.getAttribute("aria-label")));
+  }
+}
 
 const els = {
   scan: document.getElementById("scan"),
@@ -52,12 +68,12 @@ async function runScan(targetTabId) {
   if (scanning) return;
   scanning = true;
   els.scan.disabled = true;
-  setStatus("Scanning…", "busy");
+  setStatus(t.ui("scanning", null, "Scanning…"), "busy");
 
   try {
     tabId = targetTabId ?? (await activeTabId());
     if (tabId === null) {
-      setStatus("No active tab found. Click a page first, then scan.", "error");
+      setStatus(t.ui("no-tab", null, "No active tab found. Click a page first, then scan."), "error");
       return;
     }
 
@@ -68,7 +84,9 @@ async function runScan(targetTabId) {
       // the user has not clicked the icon on. It is an instruction, not a
       // failure, and painting it red made a working extension look broken.
       const variant = response?.code === "needs-grant" ? "hint" : "error";
-      clearResults(response?.error ?? "The scan failed for an unknown reason.", variant);
+      const fallback =
+        response?.error ?? t.ui("unknown-failure", null, "The scan failed for an unknown reason.");
+      clearResults(t.ui(`error.${response?.code}`, null, fallback), variant);
       return;
     }
 
@@ -92,8 +110,11 @@ chrome.runtime.onMessage.addListener((message) => {
 // Results belong to one page. When the user switches tab, or the scanned tab
 // navigates, the old findings would describe something no longer on screen —
 // and the old grant no longer applies either.
-const NEXT_PAGE_HINT =
-  "Click the A11yScope icon in the toolbar to scan this page.";
+const NEXT_PAGE_HINT = t.ui(
+  "next-page",
+  null,
+  "Click the A11yScope icon in the toolbar to scan this page."
+);
 
 chrome.tabs.onActivated.addListener(({ tabId: activated }) => {
   if (activated !== tabId) clearResults(NEXT_PAGE_HINT, "hint");
@@ -115,7 +136,11 @@ function render() {
 
   const seconds = (summary.durationMs / 1000).toFixed(summary.durationMs < 1000 ? 2 : 1);
   const stats = document.createTextNode(
-    `${summary.rulesRun} checks over ${summary.elementsScanned.toLocaleString()} elements in ${seconds}s`
+    t.ui(
+      "stats",
+      { rules: summary.rulesRun, elements: summary.elementsScanned.toLocaleString(), seconds },
+      `${summary.rulesRun} checks over ${summary.elementsScanned.toLocaleString()} elements in ${seconds}s`
+    )
   );
   const url = document.createElement("span");
   url.className = "meta__url";
@@ -128,9 +153,13 @@ function render() {
   els.status.hidden = true;
 
   if (report.engineErrors?.length) {
+    const ids = report.engineErrors.map((e) => e.id).join(", ");
     setStatus(
-      `${report.engineErrors.length} check(s) could not run on this page: ` +
-        report.engineErrors.map((e) => e.id).join(", "),
+      t.ui(
+        "engine-errors",
+        { count: report.engineErrors.length, ids },
+        `${report.engineErrors.length} check(s) could not run on this page: ${ids}`
+      ),
       "error"
     );
   }
@@ -162,12 +191,16 @@ function renderResults() {
     if (filter === "all" && report.summary.violations === 0 && report.summary.review === 0) {
       const big = document.createElement("span");
       big.className = "empty__big";
-      big.textContent = "No automated issues found";
+      big.textContent = t.ui("none-found", null, "No automated issues found");
       empty.append(big, document.createTextNode(
-        "Manual keyboard and screen reader testing is still needed before you can call this page accessible."
+        t.ui(
+          "none-found-detail",
+          null,
+          "Manual keyboard and screen reader testing is still needed before you can call this page accessible."
+        )
       ));
     } else {
-      empty.textContent = "Nothing matches this filter.";
+      empty.textContent = t.ui("nothing-matches", null, "Nothing matches this filter.");
     }
     els.results.append(empty);
     return;
@@ -198,16 +231,17 @@ function renderRule(rule) {
   const body = document.createElement("div");
   body.className = "rule__body";
 
+  const text = t.rule(rule);
   const title = document.createElement("h2");
   title.className = "rule__title";
-  title.textContent = rule.title;
+  title.textContent = text.title;
 
   const tags = document.createElement("div");
   tags.className = "rule__tags";
   for (const criterion of rule.wcag) {
     tags.append(makeTag(`WCAG ${criterion}`));
   }
-  tags.append(makeTag(rule.level), makeTag(rule.impact));
+  tags.append(makeTag(t.level(rule.level)), makeTag(t.impact(rule.impact)));
 
   body.append(title, tags);
 
@@ -215,15 +249,16 @@ function renderRule(rule) {
   count.className = "rule__count";
   const total = rule.violations.length + rule.review.length;
   count.textContent = total ? String(total) : "";
+  const counts = { violations: rule.violations.length, review: rule.review.length };
   const countLabel =
     rule.violations.length && rule.review.length
-      ? `${rule.violations.length} violations, ${rule.review.length} to review`
+      ? t.ui("count-both", counts, `${rule.violations.length} violations, ${rule.review.length} to review`)
       : rule.violations.length
-        ? `${rule.violations.length} violations`
+        ? t.ui("count-violations", counts, `${rule.violations.length} violations`)
         : rule.review.length
-          ? `${rule.review.length} to review`
-          : "passed";
-  toggle.setAttribute("aria-label", `${rule.title} — ${countLabel}`);
+          ? t.ui("count-review", counts, `${rule.review.length} to review`)
+          : t.ui("count-passed", null, "passed");
+  toggle.setAttribute("aria-label", `${text.title} — ${countLabel}`);
 
   toggle.append(marker, body, count);
 
@@ -234,7 +269,7 @@ function renderRule(rule) {
 
   const help = document.createElement("p");
   help.className = "rule__help";
-  help.textContent = rule.help;
+  help.textContent = text.help;
   panel.append(help);
 
   if (total) {
@@ -271,7 +306,7 @@ function renderFinding(finding, isReview) {
 
   const message = document.createElement("span");
   message.className = "finding__message";
-  message.textContent = finding.message;
+  message.textContent = t.finding(finding);
   button.append(message);
 
   if (finding.data?.foreground && finding.data?.background) {
@@ -293,7 +328,7 @@ function renderFinding(finding, isReview) {
 
   const hint = document.createElement("span");
   hint.className = "finding__hint";
-  hint.textContent = "Select to highlight on the page";
+  hint.textContent = t.ui("select-to-highlight", null, "Select to highlight on the page");
   button.append(hint);
 
   button.addEventListener("click", () => highlight(finding, button, hint));
@@ -318,12 +353,17 @@ async function highlight(finding, button, hintNode) {
   });
   if (!result?.ok) {
     hintNode.textContent = result?.reason
-      ? `Could not highlight: ${result.reason}`
-      : "Could not highlight this element.";
+      ? t.ui("highlight-failed-reason", { reason: result.reason }, `Could not highlight: ${result.reason}`)
+      : t.ui("highlight-failed", null, "Could not highlight this element.");
     button.classList.remove("finding--active");
     button.setAttribute("aria-current", "false");
   } else {
-    hintNode.textContent = `Highlighted on the page (${result.rect.width}×${result.rect.height}px)`;
+    const { width, height } = result.rect;
+    hintNode.textContent = t.ui(
+      "highlighted",
+      { width, height },
+      `Highlighted on the page (${width}×${height}px)`
+    );
   }
 }
 
@@ -348,14 +388,18 @@ els.exportButton.addEventListener("click", async () => {
 
   if (!pro) {
     setStatus(
-      "Report export is a Pro feature. Everything you can see on screen is free " +
-        "and always will be — Pro adds shareable reports and multi-page scans.",
+      t.ui(
+        "export-pro",
+        null,
+        "Report export is a Pro feature. Everything you can see on screen is free " +
+          "and always will be — Pro adds shareable reports and multi-page scans."
+      ),
       "error"
     );
     return;
   }
 
-  const { filename, mime, content } = buildReport(report);
+  const { filename, mime, content } = buildReport(report, t);
   const url = URL.createObjectURL(new Blob([content], { type: mime }));
   const link = document.createElement("a");
   link.href = url;

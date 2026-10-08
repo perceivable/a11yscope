@@ -64,7 +64,7 @@ async function scanTab(tabId) {
   const [injection] = await chrome.scripting.executeScript({ target, files: [ENGINE] });
 
   if (!injection || !injection.result) {
-    return { error: "The scan returned no result. Try reloading the page." };
+    return { error: "The scan returned no result. Try reloading the page.", code: "no-result" };
   }
   return { report: injection.result };
 }
@@ -73,7 +73,7 @@ chrome.runtime.onMessage.addListener((message, _sender, respond) => {
   if (message?.type === "a11yscope:scan") {
     scanTab(message.tabId)
       .then(respond)
-      .catch((error) => respond({ error: friendlyError(error), code: errorCode(error) }));
+      .catch((error) => respond(refusal(error)));
     return true; // keep the message channel open for the async reply
   }
 
@@ -85,7 +85,7 @@ chrome.runtime.onMessage.addListener((message, _sender, respond) => {
         args: [message.selector],
       })
       .then(([injection]) => respond(injection?.result ?? { ok: false }))
-      .catch((error) => respond({ ok: false, reason: friendlyError(error) }));
+      .catch((error) => respond({ ok: false, reason: refusal(error).error }));
     return true;
   }
 
@@ -93,50 +93,47 @@ chrome.runtime.onMessage.addListener((message, _sender, respond) => {
 });
 
 /**
- * Which kind of refusal this is. "needs-grant" is not a failure — the page is
- * scannable, the user just has not clicked the icon on it yet — so the panel
- * presents it as an instruction rather than an error.
- */
-function errorCode(error) {
-  const text = String(error?.message ?? error);
-  if (text.includes("Cannot access contents") || text.includes("must request permission")) {
-    return "needs-grant";
-  }
-  return "failed";
-}
-
-/**
  * Turn Chrome's injection errors into something that tells the user what to do.
  *
  * The distinction that matters: a page extensions may never touch, versus a
  * page we simply have not been granted access to yet. The second is one click
  * away from working, and saying so is the difference between a bug report and
- * a solved problem.
+ * a solved problem. "needs-grant" is therefore not a failure, and the panel
+ * presents it as an instruction rather than an error.
+ *
+ * The `code` is what the panel translates on; the English `error` is the
+ * fallback and what ends up in a bug report.
  */
-function friendlyError(error) {
+function refusal(error) {
   const text = String(error?.message ?? error);
 
   if (/chrome:\/\/|chrome-extension:\/\/|edge:\/\/|about:|devtools:\/\//.test(text)) {
-    return (
-      "Browser pages cannot be scanned — Chrome blocks extensions there for " +
-      "security reasons. Open an ordinary web page and scan again."
-    );
+    return {
+      code: "browser-page",
+      error:
+        "Browser pages cannot be scanned — Chrome blocks extensions there for " +
+        "security reasons. Open an ordinary web page and scan again.",
+    };
   }
   if (text.includes("Cannot access contents") || text.includes("must request permission")) {
-    return (
-      "To scan this page, click the A11yScope icon in the toolbar. Chrome " +
-      "only lets the extension read a page after you click it there, so it " +
-      "never sees pages you have not asked it to check."
-    );
+    return {
+      code: "needs-grant",
+      error:
+        "To scan this page, click the A11yScope icon in the toolbar. Chrome " +
+        "only lets the extension read a page after you click it there, so it " +
+        "never sees pages you have not asked it to check.",
+    };
   }
   if (text.includes("No tab with id")) {
-    return "That tab was closed. Open the page again and rescan.";
+    return { code: "tab-closed", error: "That tab was closed. Open the page again and rescan." };
   }
   if (text.includes("The extensions gallery cannot be scripted")) {
-    return (
-      "The Chrome Web Store cannot be scanned — Chrome blocks extensions " +
-      "there. Open an ordinary web page and scan again."
-    );
+    return {
+      code: "web-store",
+      error:
+        "The Chrome Web Store cannot be scanned — Chrome blocks extensions " +
+        "there. Open an ordinary web page and scan again.",
+    };
   }
-  return text;
+  return { code: "failed", error: text };
 }

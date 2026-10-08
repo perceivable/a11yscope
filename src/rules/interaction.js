@@ -22,11 +22,20 @@
       const content = (meta.getAttribute("content") || "").toLowerCase();
       const found = [];
       if (/user-scalable\s*=\s*(no|0)/.test(content)) {
-        found.push({ el: meta, message: 'Viewport sets user-scalable="no", which blocks pinch zoom' });
+        found.push({
+          el: meta,
+          key: "viewport-scalable.user-scalable",
+          message: 'Viewport sets user-scalable="no", which blocks pinch zoom',
+        });
       }
       const max = content.match(/maximum-scale\s*=\s*([\d.]+)/);
       if (max && parseFloat(max[1]) < 2) {
-        found.push({ el: meta, message: `Viewport caps maximum-scale at ${max[1]}, below the required 2` });
+        found.push({
+          el: meta,
+          key: "viewport-scalable.max-scale",
+          data: { max: max[1] },
+          message: `Viewport caps maximum-scale at ${max[1]}, below the required 2`,
+        });
       }
       return found;
     },
@@ -50,7 +59,12 @@
         const value = Number(raw);
         if (!Number.isFinite(value) || value <= 0) continue;
         if (!dom.isVisible(el)) continue;
-        found.push({ el, message: `tabindex="${raw}" overrides the natural tab order` });
+        found.push({
+          el,
+          key: "tabindex-positive.positive",
+          data: { value: raw },
+          message: `tabindex="${raw}" overrides the natural tab order`,
+        });
       }
       return found;
     },
@@ -78,7 +92,11 @@
         // menus and unopened dialogs are the common case, and flagging them is
         // how a scanner ends up telling Deque their own site is broken.
         if (!dom.isVisible(el)) continue;
-        found.push({ el, message: "Element is focusable but hidden from assistive technology" });
+        found.push({
+          el,
+          key: "aria-hidden-focusable.focusable",
+          message: "Element is focusable but hidden from assistive technology",
+        });
       }
       return found;
     },
@@ -111,6 +129,8 @@
         if (!parent) continue;
         found.push({
           el,
+          key: "nested-interactive.nested",
+          data: { inner: describe(el), outer: describe(parent) },
           // Name the role when it is what makes the parent interactive: "<a>
           // inside <li>" reads as nonsense, "<a> inside <li role="tab">" is the
           // actual problem.
@@ -271,7 +291,7 @@
         const { el, rect } = candidate;
 
         const size = `${Math.round(rect.width)}×${Math.round(rect.height)}px`;
-        const data = { width: Math.round(rect.width), height: Math.round(rect.height) };
+        const data = { width: Math.round(rect.width), height: Math.round(rect.height), size };
 
         // An off-screen control (the classic skip link) is measured in its
         // hidden state, which is not the size anyone actually clicks. Report
@@ -280,6 +300,7 @@
           found.push({
             el,
             type: "review",
+            key: "target-size.off-screen",
             message:
               `Control is positioned off-screen and measures ${size} while hidden. ` +
               "Check its size once it becomes visible on focus.",
@@ -305,6 +326,7 @@
             found.push({
               el,
               type: "review",
+              key: "target-size.in-sentence",
               message:
                 `Link is ${size} but sits within a sentence, so 2.5.8 likely ` +
                 "exempts it. Confirm the surrounding text is not itself a list of links.",
@@ -316,6 +338,7 @@
 
         found.push({
           el,
+          key: "target-size.small",
           message: `Target is ${size}, below the 24×24 minimum`,
           data,
         });
@@ -342,6 +365,8 @@
         if (el.hasAttribute("muted") || el.muted) continue;
         found.push({
           el,
+          key: "autoplay-media.unmuted",
+          data: { tag: el.tagName.toLowerCase() },
           message: `<${el.tagName.toLowerCase()} autoplay> plays unmuted audio without user consent`,
         });
       }
@@ -368,6 +393,7 @@
         found.push({
           el,
           type: "review",
+          key: "media-captions.no-track",
           message: "<video> has no <track kind=\"captions\">. Confirm captions exist.",
         });
       }
@@ -411,7 +437,12 @@
         // role accepts a fallback list; the first valid token wins.
         const tokens = raw.trim().split(/\s+/);
         if (tokens.some((token) => VALID_ROLES.has(token.toLowerCase()))) continue;
-        found.push({ el, message: `role="${raw}" is not a valid ARIA role` });
+        found.push({
+          el,
+          key: "aria-role-valid.invalid",
+          data: { role: raw },
+          message: `role="${raw}" is not a valid ARIA role`,
+        });
       }
       return found;
     },
@@ -451,7 +482,12 @@
         if (role === "heading" && /^H[1-6]$/.test(el.tagName)) continue;
         const missing = required.filter((attr) => !el.hasAttribute(attr));
         if (!missing.length) continue;
-        found.push({ el, message: `role="${role}" is missing ${missing.join(", ")}` });
+        found.push({
+          el,
+          key: "aria-required-attr.missing",
+          data: { role, missing: missing.join(", ") },
+          message: `role="${role}" is missing ${missing.join(", ")}`,
+        });
       }
       return found;
     },
@@ -482,6 +518,8 @@
         if (el.hasAttribute("autocomplete")) continue;
         found.push({
           el,
+          key: "autocomplete-attr.missing",
+          data: { type },
           message: `<input type="${type}"> has no autocomplete attribute`,
         });
       }
@@ -525,6 +563,7 @@
         found.push({
           el,
           type: "review",
+          key: "focus-outline-removed.none",
           message: "No visible focus indicator detected when this control is focused",
         });
       }

@@ -17,6 +17,9 @@
       snippet: dom.snippetFor(el),
       tag: el.tagName ? el.tagName.toLowerCase() : "#document",
       message: finding.message || "",
+      // Which message this is, so the panel can say it in the user's language.
+      // The English `message` stays the record of truth for tools and tests.
+      key: finding.key || null,
       data: finding.data || null,
     };
   }

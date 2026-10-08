@@ -58,7 +58,9 @@ try {
       if (message.type() === "error") consoleErrors.push(message.text());
     });
 
-    await panel.goto(`chrome-extension://${extensionId}/src/panel/panel.html`, {
+    // Pinned to English: on a Korean-language machine Chrome for Testing
+    // inherits the system locale, and the panel would follow it.
+    await panel.goto(`chrome-extension://${extensionId}/src/panel/panel.html?lang=en`, {
       waitUntil: "networkidle0",
     });
 
@@ -98,6 +100,39 @@ try {
     console.log(
       `panel           → "${wired.title}", ${wired.chipCount} filters, ` +
         `${consoleErrors.length} console errors`
+    );
+
+    /* ---------- the same panel in Korean ---------- */
+
+    // Chrome's UI language cannot be switched from here, so the panel's
+    // ?lang= override stands in for it. What this proves is the wiring: the
+    // dictionary loads as a module, the static strings get swapped before
+    // first paint, and the manifest's __MSG_ placeholders resolve.
+    const errorsBefore = consoleErrors.length;
+    await panel.goto(`chrome-extension://${extensionId}/src/panel/panel.html?lang=ko`, {
+      waitUntil: "networkidle0",
+    });
+    const korean = await panel.evaluate(() => ({
+      lang: document.documentElement.lang,
+      scan: document.getElementById("scan").textContent.trim(),
+      disclaimer: document.body.textContent.includes("3분의 1"),
+      manifestName: chrome.runtime.getManifest().name,
+      leftover: [...document.querySelectorAll("[data-i18n]")]
+        .map((el) => el.dataset.i18n)
+        .filter((key) => /^[A-Za-z ,.…'-]+$/.test(document.querySelector(`[data-i18n="${key}"]`).textContent.trim())),
+    }));
+    if (korean.lang !== "ko") problems.push(`ko panel: <html lang> is "${korean.lang}"`);
+    if (korean.scan !== "이 페이지 검사") problems.push(`ko panel: scan button reads "${korean.scan}"`);
+    if (!korean.disclaimer) problems.push("ko panel: disclaimer is not in Korean");
+    if (korean.manifestName.includes("__MSG_")) {
+      problems.push(`manifest name did not localise: ${korean.manifestName}`);
+    }
+    for (const key of korean.leftover) problems.push(`ko panel: "${key}" is still in English`);
+    for (const error of consoleErrors.slice(errorsBefore)) problems.push(`ko panel console error: ${error}`);
+
+    console.log(
+      `panel (ko)      → lang="${korean.lang}", "${korean.scan}", ` +
+        `manifest "${korean.manifestName}"`
     );
   }
 

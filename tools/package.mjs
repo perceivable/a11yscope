@@ -17,6 +17,8 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 const SHIP = [
   "manifest.json",
+  "_locales/en/messages.json",
+  "_locales/ko/messages.json",
   "icons/icon16.png",
   "icons/icon32.png",
   "icons/icon48.png",
@@ -30,6 +32,7 @@ const SHIP = [
   "src/panel/panel.html",
   "src/panel/panel.css",
   "src/panel/panel.js",
+  "src/panel/i18n.js",
   "src/panel/report.js",
   "src/rules/text-alternatives.js",
   "src/rules/contrast.js",

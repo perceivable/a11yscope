@@ -64,12 +64,16 @@
       if (style.backgroundImage && style.backgroundImage !== "none") {
         const stops = gradientStops(style.backgroundImage, color);
         if (stops) return { stops, element: node };
-        return { unresolved: "background image", element: node };
+        return { unresolved: "background image", why: "image", element: node };
       }
 
       const bg = color.parseColor(style.backgroundColor);
       if (bg === null) {
-        return { unresolved: `unparseable background "${style.backgroundColor}"`, element: node };
+        return {
+          unresolved: `unparseable background "${style.backgroundColor}"`,
+          why: "unparseable",
+          element: node,
+        };
       }
       if (bg[3] > 0) {
         layers.push(bg);
@@ -193,10 +197,11 @@
           found.push({
             el,
             type: "review",
+            key: `contrast-text.unmeasured-${backdrop.why}`,
             message:
               `Contrast could not be measured (${backdrop.unresolved}). ` +
               `Check "${text.slice(0, 40)}" by hand — needs ${required}:1.`,
-            data: { required, foreground: style.color },
+            data: { required, foreground: style.color, sample: text.slice(0, 40) },
           });
           continue;
         }
@@ -223,6 +228,7 @@
           found.push({
             el,
             type: "review",
+            key: "contrast-text.gradient",
             message:
               `Over a gradient. Contrast falls to ${worst}:1 at the stop it ` +
               `contrasts least with (${toHexStop(worstStop)}), below the required ` +
@@ -255,6 +261,7 @@
           found.push({
             el,
             type: "review",
+            key: "contrast-text.invisible",
             message:
               `Text is the same colour as its background (${toHex(flatFg)}), so it ` +
               "is currently invisible. Check its contrast in the state where it " +
@@ -274,6 +281,7 @@
           found.push({
             el,
             type: "review",
+            key: "contrast-text.light-on-light",
             message:
               `Light text (${toHex(flatFg)}) resolved against a light background ` +
               `(${toHex(backdrop.color)}). There is probably a darker layer behind ` +
@@ -286,6 +294,7 @@
 
         found.push({
           el,
+          key: "contrast-text.below",
           message:
             `Contrast ${ratio}:1 is below the required ${required}:1 ` +
             `(${toHex(flatFg)} on ${toHex(backdrop.color)}, ${Math.round(fontSize)}px)`,
@@ -337,6 +346,8 @@
           found.push({
             el,
             type: "review",
+            key: "contrast-placeholder.unmeasured",
+            data: { sample: placeholder.slice(0, 40) },
             message:
               `Placeholder "${placeholder.slice(0, 40)}" could not be measured — ` +
               "this browser does not expose the ::placeholder colour. Check by hand.",
@@ -358,10 +369,11 @@
           found.push({
             el,
             type: "review",
+            key: "contrast-placeholder.unmeasured-bg",
             message:
               `Placeholder "${placeholder.slice(0, 40)}" sits on a background ` +
               "that cannot be measured. Check it by hand.",
-            data: { required },
+            data: { required, sample: placeholder.slice(0, 40) },
           });
           continue;
         }
@@ -375,6 +387,7 @@
 
         found.push({
           el,
+          key: "contrast-placeholder.below",
           message:
             `Placeholder "${placeholder.slice(0, 30)}" has contrast ${ratio}:1, ` +
             `below the required ${required}:1 (${toHex(flatFg)} on ${toHex(backdrop.color)})`,
@@ -383,7 +396,7 @@
             required,
             foreground: toHex(flatFg),
             background: toHex(backdrop.color),
-            sample: placeholder.slice(0, 60),
+            sample: placeholder.slice(0, 30),
           },
         });
       }
