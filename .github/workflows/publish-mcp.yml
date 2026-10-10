@@ -1,0 +1,67 @@
+# Publishes mcp/ to npm (trusted publishing, no token) and then to the MCP
+# Registry (GitHub OIDC, no token) whenever a tag like mcp-v0.1.0 is pushed.
+#
+# One-time setup on npmjs.com, done by the account owner: package settings →
+# Trusted publishers → GitHub Actions, repository perceivable/a11yscope,
+# workflow publish-mcp.yml. The registry side needs nothing: OIDC proves the
+# workflow runs in the perceivable org, which owns io.github.perceivable/*.
+name: publish-mcp
+
+on:
+  push:
+    tags: ["mcp-v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mcp
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - name: Check the tag matches the package version
+        run: |
+          v=$(node -p "require('./package.json').version")
+          [ "mcp-v$v" = "$GITHUB_REF_NAME" ] || { echo "tag $GITHUB_REF_NAME ≠ package $v"; exit 1; }
+          [ "$(node -p "require('./server.json').version")" = "$v" ] || { echo "server.json version ≠ $v"; exit 1; }
+
+      - name: Install (no browser download; tests run in CI with the cached Chrome)
+        run: npm ci --ignore-scripts
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: "1"
+
+      - name: Install Chrome for the test run
+        run: npx puppeteer browsers install chrome
+
+      - name: Test
+        run: npm test
+
+      - name: Publish to npm (trusted publishing) unless this version is already there
+        run: |
+          v=$(node -p "require('./package.json').version")
+          if npm view "a11yscope-mcp@$v" version >/dev/null 2>&1; then
+            echo "a11yscope-mcp@$v already on npm — skipping"
+          else
+            npm publish --access public --provenance
+          fi
+
+      - name: Install mcp-publisher
+        run: |
+          curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_linux_amd64.tar.gz" | tar xz mcp-publisher
+          ./mcp-publisher --help | head -1
+
+      - name: Publish to the MCP Registry
+        run: |
+          ./mcp-publisher login github-oidc
+          ./mcp-publisher publish

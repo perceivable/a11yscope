@@ -1,0 +1,49 @@
+{
+  "name": "a11yscope-mcp",
+  "version": "0.1.0",
+  "description": "MCP server that checks web pages and HTML against WCAG 2.2 AA — the A11yScope engine for AI coding agents",
+  "mcpName": "io.github.perceivable/a11yscope",
+  "type": "module",
+  "bin": {
+    "a11yscope-mcp": "server.mjs"
+  },
+  "files": [
+    "server.mjs",
+    "engine/",
+    "README.md"
+  ],
+  "scripts": {
+    "sync": "node sync.mjs",
+    "prepack": "node sync.mjs",
+    "test": "node sync.mjs && node test/server.test.mjs",
+    "start": "node server.mjs"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "accessibility",
+    "a11y",
+    "wcag",
+    "wcag-2.2",
+    "eaa",
+    "audit",
+    "claude-code",
+    "cursor"
+  ],
+  "author": "Perceivable <perceivablehq@gmail.com>",
+  "license": "SEE LICENSE IN README.md",
+  "homepage": "https://perceivable.github.io/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/perceivable/a11yscope.git",
+    "directory": "mcp"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "puppeteer": "^24.0.0",
+    "zod": "^3.25.0"
+  }
+}

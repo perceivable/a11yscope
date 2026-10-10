@@ -1,0 +1,23 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.perceivable/a11yscope",
+  "title": "A11yScope",
+  "description": "WCAG 2.2 AA accessibility checks for pages and HTML, run locally in headless Chrome.",
+  "repository": {
+    "url": "https://github.com/perceivable/a11yscope",
+    "source": "github",
+    "subfolder": "mcp"
+  },
+  "websiteUrl": "https://perceivable.github.io/",
+  "version": "0.1.0",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "a11yscope-mcp",
+      "version": "0.1.0",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}
