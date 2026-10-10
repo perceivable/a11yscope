@@ -9,10 +9,13 @@
  *   node tools/geeknews.mjs --post post.json              # fill the form and hand the window to a human
  *
  * The /write form is gated by a Cloudflare Turnstile that keeps the "등록"
- * button disabled until a human passes it. CAPTCHAs are the user's job, so the
- * tool never submits: it fills everything, leaves the window open, and the user
- * solves the challenge and presses 등록. Afterwards check the public profile
- * (https://news.hada.io/user?id=perceivable) for the new post.
+ * button disabled until a human passes it, and in this automated Chrome the
+ * check itself fails (error 600010: the browser is judged a bot) even with a
+ * logged-in profile. So this tool cannot post. It is kept for --inspect and
+ * --dry-run (checking the form against a draft); the actual post is pasted by
+ * the user in their own browser (2026-10-10, topic 35115 went up that way).
+ * The handoff mode below fills the form and waits, in case Cloudflare's
+ * verdict ever changes; check https://news.hada.io/user?id=perceivable after.
  *
  * post.json: { "type": "show" | "url" | "ask", "title": "...", "url": "...", "text": "..." }
  * (verified 2026-10-10: /write has radios #type_url/#type_ask/#type_show, #title, #url, #contents)
@@ -108,9 +111,17 @@ try {
     if (flag("--dry-run")) {
       console.log(`dry run: type=${post.type || "show"}, title ${post.title.length} chars, url ${post.url}, text ${post.text.length} chars — not submitted`);
     } else {
+      // Chrome dies with this process, so stay alive until the human has
+      // pressed 등록 (the page leaves /write) or closed the window. Up to 30 min.
       console.log("handing over: the window stays open — pass the Turnstile check if shown, read the form once more, and press 등록.");
-      await browser.disconnect();
-      process.exit(0);
+      const deadline = Date.now() + 30 * 60 * 1000;
+      while (Date.now() < deadline) {
+        await sleep(2000);
+        if (!browser.connected || page.isClosed()) { console.log("window closed without submitting"); process.exit(1); }
+        const url = page.url();
+        if (!url.startsWith(`${SITE}/write`)) { console.log("submitted → now at", url, "|", await page.title().catch(() => "")); await sleep(1500); break; }
+      }
+      if (Date.now() >= deadline) console.log("no submit within 30 minutes — closing");
     }
   } else {
     console.error("usage: --login | --inspect | --post post.json [--dry-run]");

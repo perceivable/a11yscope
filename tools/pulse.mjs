@@ -11,6 +11,7 @@ const POSTS = [
   ["velog", "https://velog.io/@perceivable/%EC%A0%91%EA%B7%BC%EC%84%B1-%EA%B2%80%EC%82%AC%EA%B8%B0%EB%A5%BC-%EB%A7%8C%EB%93%A4%EC%96%B4-gov.uk%EC%97%90-%EB%8F%8C%EB%A0%B8%EB%8D%94%EB%8B%88-72%EA%B1%B4%EC%9D%B4-%EB%82%98%EC%99%94%EB%8B%A4-%EC%A0%84%EB%B6%80-%EB%82%B4-%EB%B2%84%EA%B7%B8%EC%98%80%EB%8B%A4"],
 ];
 const DEVTO = [4795578];
+const GEEKNEWS = "https://news.hada.io/user?id=perceivable"; // profile lists each post with points and comment count
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36";
 
 const browser = await puppeteer.launch({ headless: true, args: ["--no-sandbox", "--disable-dev-shm-usage", "--lang=en-US"] });
@@ -44,6 +45,15 @@ try {
     console.log(`${name.padEnd(7)} comments ${post.count}${post.likes ? ` · likes ${post.likes}` : ""}`);
     for (const b of post.bodies) console.log(`        › ${b.slice(0, 100)}`);
   }
+
+  // GeekNews: the public profile shows "N점 · 댓글 M개" per post.
+  await page.goto(GEEKNEWS, { waitUntil: "domcontentloaded", timeout: 45000 });
+  const gn = await page.evaluate(() => {
+    const text = document.body.innerText;
+    return [...text.matchAll(/(Show GN: [^\n]{0,60})[^\n]*\n?[^\n]*?(\d+)점 · 댓글 (\d+)개/g)].map((m) => ({ title: m[1].trim(), points: m[2], comments: m[3] }));
+  });
+  for (const g of gn) console.log(`geeknews points ${g.points} · comments ${g.comments} — ${g.title.slice(0, 50)}`);
+  if (!gn.length) console.log("geeknews (no posts parsed)");
 
   // dev.to blocks headless page loads, but its public API serves the same counts.
   for (const id of DEVTO) {
