@@ -73,6 +73,8 @@ try {
   const reg = await j("https://registry.modelcontextprotocol.io/v0.1/servers?search=a11yscope");
   const regVersions = (reg.servers || []).map((s) => `${s.server.version}:${s._meta?.["io.modelcontextprotocol.registry/official"]?.status}`);
   console.log(`registry ${regVersions.join(" ") || "(not listed)"}`);
+  const glama = await fetch("https://glama.ai/mcp/servers/perceivable/a11yscope", { headers: { "User-Agent": UA } });
+  console.log(`glama   ${glama.status === 200 ? "listed" : `not listed (${glama.status})`} — submitted 2026-10-11`);
   for (const pr of AWESOME_PRS) {
     const p = await j(`https://api.github.com/repos/punkpeye/awesome-mcp-servers/pulls/${pr}`);
     console.log(`awesome PR #${pr} ${p.merged_at ? "merged" : p.state} · comments ${p.comments ?? "?"}`);
