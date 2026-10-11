@@ -26,6 +26,8 @@ for (const file of ENGINE_FILES) {
   await copyFile(join(root, file), join(here, "engine", file.split("/").pop()));
 }
 const { version } = JSON.parse(await (await import("node:fs/promises")).readFile(join(root, "package.json"), "utf8"));
+// The licence lives at the repository root; ship a copy in the npm package.
+await copyFile(join(root, "LICENSE"), join(here, "LICENSE"));
 await writeFile(
   join(here, "engine", "manifest.json"),
   JSON.stringify({ engineVersion: version, files: ENGINE_FILES.map((f) => f.split("/").pop()) }, null, 2) + "\n"

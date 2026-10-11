@@ -1,0 +1,51 @@
+A11yScope Source-Available Licence
+
+Copyright © 2026 Perceivable. All rights reserved.
+
+This repository contains the A11yScope Chrome extension and the a11yscope-mcp
+MCP server. The source is published so that the claim "nothing leaves your
+machine" can be verified by reading the code rather than taken on trust. It is
+not open source.
+
+1. Permitted use
+
+   You may:
+   a. read, audit and learn from this source code;
+   b. install and run the Chrome extension from the Chrome Web Store and the
+      MCP server from npm or from this repository, for any purpose, including
+      commercial use, on any number of machines;
+   c. run the source locally for your own evaluation and testing;
+   d. report problems, including false positives, through the issue tracker.
+
+2. Restrictions
+
+   Except as stated in section 1, no licence is granted. You may not copy,
+   modify, translate, redistribute, sublicense, sell or publish this software
+   or any derivative work, and you may not publish any variant of it to an
+   extension store, package registry, server directory or similar channel.
+   Automated analysis of this code for the purpose of reproducing its checks
+   in another product is a derivative work.
+
+3. Trademarks
+
+   "A11yScope" and "Perceivable" are names of the copyright holder. This
+   licence grants no right to use them except to refer to this software.
+
+4. No warranty
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL
+   THE COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY
+   ARISING FROM OR IN CONNECTION WITH THE SOFTWARE OR ITS USE.
+
+   In particular, results produced by the software are automated checks that
+   cover only part of any accessibility standard. They are not a conformance
+   claim, a legal opinion or a certification of compliance with WCAG, the EAA,
+   the ADA, KWCAG or any other standard.
+
+5. Termination
+
+   This licence ends automatically if you breach it. Sections 2 to 4 survive.
+
+Contact: https://github.com/perceivable/a11yscope/issues

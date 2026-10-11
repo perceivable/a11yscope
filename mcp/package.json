@@ -10,7 +10,8 @@
   "files": [
     "server.mjs",
     "engine/",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "sync": "node sync.mjs",
@@ -31,7 +32,7 @@
     "cursor"
   ],
   "author": "Perceivable <perceivablehq@gmail.com>",
-  "license": "SEE LICENSE IN README.md",
+  "license": "SEE LICENSE IN LICENSE",
   "homepage": "https://perceivable.github.io/",
   "repository": {
     "type": "git",

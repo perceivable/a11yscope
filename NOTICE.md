@@ -1,6 +1,6 @@
 # Notice
 
-Copyright © 2026 Perceivable. All rights reserved.
+Copyright © 2026 Perceivable. All rights reserved. The binding terms are in `LICENSE`; this file explains them.
 
 ## Why this source is public
 

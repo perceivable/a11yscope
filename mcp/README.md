@@ -80,5 +80,6 @@ Copyright © 2026 Perceivable. Free to install and run, including commercially,
 through npm and MCP clients. The engine source is published so that "nothing
 leaves your machine" can be verified rather than trusted; it is not open
 source, and no licence is granted to copy, modify or redistribute it or to
-publish derivative works. Problems and false positives:
+publish derivative works. Full terms: the `LICENSE` file in this package and
+at the repository root. Problems and false positives:
 <https://github.com/perceivable/a11yscope/issues>.
