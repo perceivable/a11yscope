@@ -14,8 +14,12 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import puppeteer from "puppeteer";
+import puppeteer from "puppeteer-core";
+import { Browser, detectBrowserPlatform, install, resolveBuildId } from "@puppeteer/browsers";
 import { readFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { homedir } from "node:os";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, join, resolve } from "node:path";
 
@@ -35,11 +39,78 @@ const DISCLAIMER =
 
 /* ---------- browser ---------- */
 
+// Nothing is downloaded at install time (puppeteer-core has no postinstall), so
+// `npx a11yscope-mcp` cannot fail on a 150 MB Chrome download behind a proxy.
+// At first use we look for a browser in this order: an explicit path in
+// A11YSCOPE_CHROME or PUPPETEER_EXECUTABLE_PATH; Chrome, Chromium, Edge or
+// Brave already on the machine; a Chrome for Testing already in puppeteer's
+// cache; and only then a one-off download into that cache.
+const CACHE_DIR = process.env.PUPPETEER_CACHE_DIR || join(homedir(), ".cache", "puppeteer");
+
+const SYSTEM_BROWSERS = {
+  darwin: [
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    "/Applications/Chromium.app/Contents/MacOS/Chromium",
+    "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+    "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
+  ],
+  linux: ["google-chrome", "google-chrome-stable", "chromium", "chromium-browser", "microsoft-edge", "brave-browser"],
+  win32: [
+    "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+    "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+    `${process.env.LOCALAPPDATA || ""}\\Google\\Chrome\\Application\\chrome.exe`,
+    "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+    "C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe",
+  ],
+};
+
+function onPath(cmd) {
+  try {
+    return execFileSync("which", [cmd], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+async function findBrowser() {
+  for (const env of ["A11YSCOPE_CHROME", "PUPPETEER_EXECUTABLE_PATH"]) {
+    const p = process.env[env];
+    if (p) {
+      if (existsSync(p)) return { path: p, source: `$${env}` };
+      throw new Error(`${env} is set to ${p} but nothing is there`);
+    }
+  }
+  for (const candidate of SYSTEM_BROWSERS[process.platform] || []) {
+    const p = process.platform === "linux" ? onPath(candidate) : candidate;
+    if (p && existsSync(p)) return { path: p, source: "installed browser" };
+  }
+  try {
+    const cached = puppeteer.executablePath();
+    if (cached && existsSync(cached)) return { path: cached, source: "puppeteer cache" };
+  } catch {
+    /* no pinned build in the cache */
+  }
+  const platform = detectBrowserPlatform();
+  if (!platform) throw new Error("No Chrome found and this platform is not supported for an automatic download. Install Google Chrome or set A11YSCOPE_CHROME to a Chromium-based browser executable.");
+  const buildId = await resolveBuildId(Browser.CHROME, platform, "stable");
+  process.stderr.write(`a11yscope-mcp: no Chrome found, downloading Chrome for Testing ${buildId} into ${CACHE_DIR} (one-off, ~150 MB)\n`);
+  const installed = await install({ browser: Browser.CHROME, buildId, cacheDir: CACHE_DIR, platform });
+  return { path: installed.executablePath, source: "downloaded Chrome for Testing" };
+}
+
 let browserPromise = null;
 function browser() {
-  browserPromise ||= puppeteer.launch({
-    headless: true,
-    args: ["--no-sandbox", "--disable-dev-shm-usage"],
+  browserPromise ||= (async () => {
+    const { path, source } = await findBrowser();
+    process.stderr.write(`a11yscope-mcp: using ${source}: ${path}\n`);
+    return puppeteer.launch({
+      executablePath: path,
+      headless: true,
+      args: ["--no-sandbox", "--disable-dev-shm-usage"],
+    });
+  })().catch((error) => {
+    browserPromise = null; // let the next call retry (e.g. after the user installs Chrome)
+    throw error;
   });
   return browserPromise;
 }

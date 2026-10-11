@@ -36,13 +36,9 @@ jobs:
           [ "mcp-v$v" = "$GITHUB_REF_NAME" ] || { echo "tag $GITHUB_REF_NAME ≠ package $v"; exit 1; }
           [ "$(node -p "require('./server.json').version")" = "$v" ] || { echo "server.json version ≠ $v"; exit 1; }
 
-      - name: Install (no browser download; tests run in CI with the cached Chrome)
-        run: npm ci --ignore-scripts
-        env:
-          PUPPETEER_SKIP_DOWNLOAD: "1"
-
-      - name: Install Chrome for the test run
-        run: npx puppeteer browsers install chrome
+      # puppeteer-core downloads nothing; the server uses the runner's google-chrome.
+      - name: Install
+        run: npm ci
 
       - name: Test
         run: npm test

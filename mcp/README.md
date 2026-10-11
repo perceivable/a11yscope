@@ -28,8 +28,11 @@ claude mcp add a11yscope -- npx -y a11yscope-mcp
 }
 ```
 
-First run downloads a Chrome for Testing build (~150 MB) through Puppeteer.
-Node 20 or newer.
+Needs Node 20 or newer and a Chromium-based browser. Installing downloads
+nothing: the first scan uses the Chrome, Chromium, Edge or Brave already on
+the machine, and only if none is found does it fetch a Chrome for Testing
+build (~150 MB, once) into Puppeteer's cache. To point it at a specific
+browser, set `A11YSCOPE_CHROME` to the executable path.
 
 ## Tools
 
