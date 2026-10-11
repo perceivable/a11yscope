@@ -75,6 +75,11 @@ try {
   console.log(`registry ${regVersions.join(" ") || "(not listed)"}`);
   const glama = await fetch("https://glama.ai/mcp/servers/perceivable/a11yscope", { headers: { "User-Agent": UA } });
   console.log(`glama   ${glama.status === 200 ? "listed" : `not listed (${glama.status})`} — submitted 2026-10-11`);
+  // SNS: follower counts and unread-ish activity. Posting tools: bluesky.mjs, mastodon.mjs.
+  const bsky = await j("https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=perceivable.bsky.social");
+  console.log(`bluesky followers ${bsky.followersCount ?? "?"} · posts ${bsky.postsCount ?? "?"} (notifications: node tools/bluesky.mjs --notifications)`);
+  const masto = await j("https://mastodon.social/api/v1/accounts/lookup?acct=perceivable");
+  console.log(`mastodon followers ${masto.followers_count ?? "?"} · posts ${masto.statuses_count ?? "?"} (notifications: node tools/mastodon.mjs --notifications)`);
   for (const pr of AWESOME_PRS) {
     const p = await j(`https://api.github.com/repos/punkpeye/awesome-mcp-servers/pulls/${pr}`);
     console.log(`awesome PR #${pr} ${p.merged_at ? "merged" : p.state} · comments ${p.comments ?? "?"}`);
