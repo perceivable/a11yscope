@@ -11,6 +11,7 @@ const POSTS = [
   ["velog", "https://velog.io/@perceivable/%EC%A0%91%EA%B7%BC%EC%84%B1-%EA%B2%80%EC%82%AC%EA%B8%B0%EB%A5%BC-%EB%A7%8C%EB%93%A4%EC%96%B4-gov.uk%EC%97%90-%EB%8F%8C%EB%A0%B8%EB%8D%94%EB%8B%88-72%EA%B1%B4%EC%9D%B4-%EB%82%98%EC%99%94%EB%8B%A4-%EC%A0%84%EB%B6%80-%EB%82%B4-%EB%B2%84%EA%B7%B8%EC%98%80%EB%8B%A4"],
 ];
 const DEVTO = [4795578];
+const AWESOME_PRS = [16165];
 const GEEKNEWS = "https://news.hada.io/user?id=perceivable"; // profile lists each post with points and comment count
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36";
 
@@ -59,6 +60,22 @@ try {
   for (const id of DEVTO) {
     const a = await (await fetch(`https://dev.to/api/articles/${id}`, { headers: { "User-Agent": UA } })).json();
     console.log(`dev.to  comments ${a.comments_count ?? "?"} · reactions ${a.public_reactions_count ?? "?"}`);
+  }
+
+  // 2호: MCP server. npm downloads (api.npmjs.org lags a day), registry versions, awesome-list PR.
+  const j = async (url) => (await fetch(url, { headers: { "User-Agent": UA } })).json();
+  const [week, month, npmDoc] = await Promise.all([
+    j("https://api.npmjs.org/downloads/point/last-week/a11yscope-mcp"),
+    j("https://api.npmjs.org/downloads/point/last-month/a11yscope-mcp"),
+    j("https://registry.npmjs.org/a11yscope-mcp"),
+  ]);
+  console.log(`npm     downloads week ${week.downloads ?? "?"} · month ${month.downloads ?? "?"} · latest ${npmDoc["dist-tags"]?.latest}`);
+  const reg = await j("https://registry.modelcontextprotocol.io/v0.1/servers?search=a11yscope");
+  const regVersions = (reg.servers || []).map((s) => `${s.server.version}:${s._meta?.["io.modelcontextprotocol.registry/official"]?.status}`);
+  console.log(`registry ${regVersions.join(" ") || "(not listed)"}`);
+  for (const pr of AWESOME_PRS) {
+    const p = await j(`https://api.github.com/repos/punkpeye/awesome-mcp-servers/pulls/${pr}`);
+    console.log(`awesome PR #${pr} ${p.merged_at ? "merged" : p.state} · comments ${p.comments ?? "?"}`);
   }
 } finally {
   await browser.close();
