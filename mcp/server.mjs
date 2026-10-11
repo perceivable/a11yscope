@@ -102,6 +102,19 @@ function shape(report, { includeReview, maxPerRule, includePassed }) {
   };
 }
 
+// Wraps a tool handler so a stdin EOF waits for calls that are still running.
+function tracked(handler) {
+  return async (...args) => {
+    inflight++;
+    try {
+      return await handler(...args);
+    } finally {
+      inflight--;
+      if (stdinClosed && inflight === 0) shutdown();
+    }
+  };
+}
+
 function textResult(data, isError = false) {
   return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }], isError };
 }
@@ -147,7 +160,7 @@ server.registerTool(
       ...scanOptions,
     },
   },
-  async ({ url, wait_ms, include_review, include_passed, max_findings_per_rule, viewport_width, viewport_height }) => {
+  tracked(async ({ url, wait_ms, include_review, include_passed, max_findings_per_rule, viewport_width, viewport_height }) => {
     const target = toUrl(url);
     try {
       const report = await withPage({ width: viewport_width, height: viewport_height }, async (page) => {
@@ -159,7 +172,7 @@ server.registerTool(
     } catch (error) {
       return textResult({ error: `Could not scan ${target}: ${error.message}` }, true);
     }
-  }
+  })
 );
 
 server.registerTool(
@@ -176,7 +189,7 @@ server.registerTool(
       ...scanOptions,
     },
   },
-  async ({ html, base_url, include_review, include_passed, max_findings_per_rule, viewport_width, viewport_height }) => {
+  tracked(async ({ html, base_url, include_review, include_passed, max_findings_per_rule, viewport_width, viewport_height }) => {
     try {
       const report = await withPage({ width: viewport_width, height: viewport_height }, async (page) => {
         if (base_url) {
@@ -198,7 +211,7 @@ server.registerTool(
     } catch (error) {
       return textResult({ error: `Could not scan the HTML: ${error.message}` }, true);
     }
-  }
+  })
 );
 
 server.registerTool(
@@ -208,7 +221,7 @@ server.registerTool(
     description: "The 31 checks A11yScope runs, each with its WCAG 2.2 success criteria, level, impact, and how to fix it.",
     inputSchema: {},
   },
-  async () => {
+  tracked(async () => {
     try {
       const rules = await withPage({ width: 800, height: 600 }, async (page) => {
         await page.goto("about:blank");
@@ -223,7 +236,7 @@ server.registerTool(
     } catch (error) {
       return textResult({ error: `Could not list rules: ${error.message}` }, true);
     }
-  }
+  })
 );
 
 /* ---------- lifecycle ---------- */
@@ -237,6 +250,11 @@ async function shutdown() {
 }
 process.on("SIGINT", shutdown);
 process.on("SIGTERM", shutdown);
+// Clients that just close our stdin (instead of signalling) must not leave a
+// Chrome behind: the SDK transport does not treat EOF as close, so we do.
+let inflight = 0;
+let stdinClosed = false;
+process.stdin.on("end", () => { stdinClosed = true; if (inflight === 0) shutdown(); });
 
 const transport = new StdioServerTransport();
 transport.onclose = shutdown;
