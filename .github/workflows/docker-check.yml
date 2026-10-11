@@ -1,0 +1,37 @@
+# Builds the Dockerfile and checks the container answers MCP introspection and
+# can run a scan with the bundled Chromium — what Glama's listing check does.
+name: docker-check
+
+on:
+  push:
+    paths: ["Dockerfile", "mcp/**", "src/**", ".github/workflows/docker-check.yml"]
+  workflow_dispatch:
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: docker build -t a11yscope-mcp .
+
+      - name: Introspect and scan over stdio
+        run: |
+          printf '%s\n' \
+            '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"ci","version":"0"}}}' \
+            '{"jsonrpc":"2.0","method":"notifications/initialized"}' \
+            '{"jsonrpc":"2.0","id":2,"method":"tools/list"}' \
+            '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"scan_html","arguments":{"html":"<!doctype html><html lang=\"en\"><head><title>t</title></head><body><main><h1>Hi</h1><img src=\"a.png\" width=\"120\" height=\"80\"></main></body></html>"}}}' \
+            | docker run -i --rm a11yscope-mcp > out.jsonl 2> err.log || true
+          cat err.log
+          node -e '
+            const lines = require("fs").readFileSync("out.jsonl", "utf8").trim().split("\n").map(JSON.parse);
+            const by = (id) => lines.find((m) => m.id === id);
+            if (by(1)?.result?.serverInfo?.name !== "a11yscope") throw new Error("initialize failed");
+            const tools = by(2)?.result?.tools?.map((t) => t.name).sort().join(",");
+            if (tools !== "list_rules,scan_html,scan_page") throw new Error("tools/list: " + tools);
+            const scan = JSON.parse(by(3).result.content[0].text);
+            if (by(3).result.isError || !scan.rules?.some((r) => r.id === "img-alt")) throw new Error("scan_html: " + JSON.stringify(scan).slice(0, 300));
+            console.log("docker image: initialize, tools/list and scan_html OK (" + scan.summary.violations + " violation)");
+          '
