@@ -7,6 +7,15 @@ Built to stay honest about its own limits: automated tooling catches roughly a
 third of real accessibility barriers, and the UI says so rather than implying a
 clean scan means compliance.
 
+Two ways to run the same engine:
+
+| | Install | For |
+|---|---|---|
+| **Chrome extension** | [Chrome Web Store](https://chromewebstore.google.com/detail/ldbmeaihgdlghenedbhafkfikefnmicb) | People: scan the page you are looking at, in a side panel (English, 한국어) |
+| **MCP server** `a11yscope-mcp` | `claude mcp add a11yscope -- npx -y a11yscope-mcp` | AI coding agents (Claude Code, Cursor, Claude Desktop): scan a URL, a file or the HTML the agent just wrote, then fix it. See [`mcp/`](mcp/README.md). |
+
+Both run locally. Nothing is uploaded, no account, no telemetry.
+
 ## Design constraints
 
 These are not incidental — they shape every decision in the codebase.
