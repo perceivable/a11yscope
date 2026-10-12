@@ -84,6 +84,18 @@ try {
     const p = await j(`https://api.github.com/repos/punkpeye/awesome-mcp-servers/pulls/${pr}`);
     console.log(`awesome PR #${pr} ${p.merged_at ? "merged" : p.state} · comments ${p.comments ?? "?"}`);
   }
+
+  // Inbox (read-only IMAP, tools/mail.mjs): unread count and the newest unread subjects.
+  {
+    const { execFileSync } = await import("node:child_process");
+    try {
+      const lines = execFileSync(process.execPath, ["tools/mail.mjs", "--unseen", "--days", "14"], { encoding: "utf8", timeout: 30000 }).trim().split("\n").filter((l) => /#\d+$/.test(l));
+      console.log(`mail    unread ${lines.length} (node tools/mail.mjs · --read <uid>)`);
+      for (const l of lines.slice(-5)) console.log(`        › ${l.slice(0, 110)}`);
+    } catch (e) {
+      console.log(`mail    (unavailable: ${String(e.message).split("\n")[0].slice(0, 60)})`);
+    }
+  }
 } finally {
   await browser.close();
 }

@@ -14,7 +14,7 @@ ENV A11YSCOPE_CHROME=/usr/bin/chromium
 
 WORKDIR /app
 # The engine is copied from src/ into mcp/engine by mcp/sync.mjs (same as prepack).
-COPY package.json ./
+COPY package.json LICENSE ./
 COPY src ./src
 COPY mcp ./mcp
 WORKDIR /app/mcp
