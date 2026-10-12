@@ -34,7 +34,10 @@ const launch = () =>
     headless: false, // dev.to refuses headless page loads
     userDataDir: PROFILE,
     defaultViewport: null,
-    args: ["--no-first-run", "--no-default-browser-check", "--window-size=1100,900", "--lang=en-US"],
+    protocolTimeout: 60000, // a hung CDP call should fail fast, not after 3 minutes
+    args: ["--no-first-run", "--no-default-browser-check", "--window-size=1100,900", "--lang=en-US",
+      // Without these, a covered window or a locked display stops rendering and anything waiting for a frame hangs.
+      "--disable-backgrounding-occluded-windows", "--disable-renderer-backgrounding", "--disable-background-timer-throttling"],
   });
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -106,10 +109,23 @@ const started = new Date(Date.now() - 60 * 1000);
 
 const browser = await launch();
 try {
-  const page = (await browser.pages())[0];
+  let page = (await browser.pages())[0];
+  // A dialog (alert/confirm/beforeunload) blocks every Runtime call; say so and dismiss it.
+  page.on("dialog", (d) => { console.log(`dialog (${d.type()}): ${d.message().slice(0, 120)} — dismissed`); d.dismiss().catch(() => {}); });
+  const step = (what) => console.log(`[${new Date().toISOString().slice(11, 19)}] ${what}`);
+  step("checking login");
   if (!(await loggedIn(page))) throw new Error("not logged in — run with --login first");
-
-  await page.goto(permalink, { waitUntil: "networkidle2", timeout: 45000 });
+  // A fresh tab for the comment page: after the dashboard visit, navigating the
+  // same tab left every Runtime call hanging (2026-10-12).
+  const first = page;
+  page = await browser.newPage();
+  await first.close().catch(() => {});
+  page.on("dialog", (d) => { console.log(`dialog (${d.type()}): ${d.message().slice(0, 120)} — dismissed`); d.dismiss().catch(() => {}); });
+  step("opening comment permalink in a new tab");
+  // domcontentloaded, not networkidle2: on 2026-10-12 the networkidle2 load left
+  // every Runtime call hanging (ProtocolError timeout) while a plain load worked.
+  await page.goto(permalink, { waitUntil: "domcontentloaded", timeout: 45000 });
+  await sleep(1500);
 
   // The permalink page renders the comment as #comment-node-<numeric id>; the
   // API only gives id_code, which is the numeric id in base 26. The "Reply"
@@ -117,18 +133,23 @@ try {
   const id = parseInt(parentCode, 26);
   const commentSel = `#comment-node-${id}`;
   await page.waitForSelector(commentSel, { timeout: 20000 });
-  const replyButton = await page.$(`${commentSel} button[data-testid="reply-button-${id}"]`);
-  if (!replyButton) throw new Error(`reply button not found in ${commentSel}`);
-  await replyButton.click();
+  // Click and focus through the DOM, not ElementHandle.click(): that one waits for an
+  // IntersectionObserver frame and hangs when Chrome is not rendering (covered window, locked display).
+  const clicked = await page.evaluate((sel) => { const b = document.querySelector(sel); if (!b) return false; b.click(); return true; }, `${commentSel} button[data-testid="reply-button-${id}"]`);
+  if (!clicked) throw new Error(`reply button not found in ${commentSel}`);
+
+  step("reply button clicked");
 
   // Focusing the textarea swaps it for an enhanced editor, so never keep a
   // handle across the click: re-query by id after the swap settles.
   const taSel = `#textarea-for-${id}`;
-  await page.waitForSelector(taSel, { visible: true, timeout: 20000 });
-  await page.click(taSel);
+  await page.waitForSelector(taSel, { timeout: 20000 });
+  await page.evaluate((sel) => document.querySelector(sel).click(), taSel);
   await sleep(1500);
-  await page.focus(taSel);
-  await page.type(taSel, body, { delay: 2 });
+  await page.evaluate((sel) => document.querySelector(sel).focus(), taSel);
+  step("typing");
+  await page.keyboard.type(body, { delay: 2 });
+  step("typed");
   await sleep(500);
   const typed = await page.$eval(taSel, (el) => el.value);
   if (typed.trim() !== body) throw new Error(`textarea content differs from the file after typing:\n${JSON.stringify(typed)}`);
@@ -140,9 +161,9 @@ try {
     if (submits.length !== 1) throw new Error(`expected one submit button, found ${submits.length}: ${submits.join(" | ")}`);
     console.log(`dry run: form for comment ${id} filled with ${typed.length} chars, submit button "${submits[0]}" present, not submitted`);
   } else {
-    const submit = await page.$(`#new-comment-${id} button[type="submit"]`);
-    if (!submit) throw new Error("submit button not found");
-    await submit.click();
+    const submitted = await page.evaluate((sel) => { const b = document.querySelector(sel); if (!b) return false; b.click(); return true; }, `#new-comment-${id} button[type="submit"]`);
+    if (!submitted) throw new Error("submit button not found");
+
     // Confirm through the API, not the DOM: the reply must exist on the server.
     let reply = null;
     for (let i = 0; i < 10 && !reply; i++) {
