@@ -36,7 +36,7 @@
   "homepage": "https://perceivable.github.io/",
   "repository": {
     "type": "git",
-    "url": "https://github.com/perceivable/a11yscope.git",
+    "url": "git+https://github.com/perceivable/a11yscope.git",
     "directory": "mcp"
   },
   "engines": {
