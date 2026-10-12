@@ -52,6 +52,10 @@ try {
   const imgBefore = before.rules.find((r) => r.id === "img-alt");
   check(imgBefore?.status === "failed" && imgBefore.checked === 1, `one image, no alt → img-alt ${imgBefore?.status}, checked ${imgBefore?.checked}`);
   check((before.notes || []).some((n) => /fragment/.test(n)) && before.summary.iframesNotEntered === 1 && before.notes.some((n) => /iframe/.test(n)), "fragment + iframe → notes say fragment and frame not entered");
+  const hidden = parse(await call("scan_html", { html: '<main><img src="a.png" width="120" height="80" aria-hidden="true"></main>', include_passed: true }));
+  const imgHidden = hidden.rules.find((r) => r.id === "img-alt");
+  check(imgHidden?.status === "passed" && imgHidden.checked === 1 && imgHidden.excluded === 1, `image hidden with aria-hidden → img-alt ${imgHidden?.status}, checked ${imgHidden?.checked}, excluded ${imgHidden?.excluded}`);
+  check(imgBefore.excluded === 0, `visible image → excluded ${imgBefore.excluded}`);
   const after = parse(await call("scan_html", { html: "<main></main>", include_passed: true }));
   const imgAfter = after.rules.find((r) => r.id === "img-alt");
   check(imgAfter?.status === "inapplicable" && imgAfter.checked === 0, `image deleted → img-alt ${imgAfter?.status}, checked ${imgAfter?.checked}`);

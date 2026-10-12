@@ -55,14 +55,24 @@
       // How many elements the rule had to look at. A rule that found nothing
       // because there was nothing to test is "inapplicable", not "passed":
       // deleting every <img> must not read as fixing the alt text.
+      // `excluded` is how many of those the rule never judged because they are
+      // hidden from assistive technology or marked decorative. An agent that
+      // "fixes" img-alt with aria-hidden="true" leaves checked unchanged and
+      // moves the element into excluded, which is the number to watch.
       let checked = null;
+      let excluded = null;
       if (rule.scope === "page") {
         checked = 1;
       } else if (typeof rule.applies === "function") {
         checked = 0;
+        excluded = rule.exclusions === false ? null : 0;
         for (const el of elements) {
           try {
-            if (rule.applies(el, ctx)) checked++;
+            if (!rule.applies(el, ctx)) continue;
+            checked++;
+            if (excluded === null) continue;
+            const role = el.getAttribute("role");
+            if (dom.isAriaHidden(el) || !dom.isVisible(el) || role === "presentation" || role === "none") excluded++;
           } catch {
             // an element that throws on inspection is simply not counted
           }
@@ -86,6 +96,7 @@
         violations,
         review,
         checked,
+        excluded,
         status,
         passed: violations.length === 0 && review.length === 0,
       });

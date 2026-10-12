@@ -86,6 +86,7 @@
       'or take the element out of the tab order with tabindex="-1".',
     // What this rule looks at, so the report can tell "nothing to test" from "tested and fine".
     applies: (el, { dom }) => Boolean(el.closest('[aria-hidden="true"]')) && dom.isFocusable(el),
+    exclusions: false, // every candidate is aria-hidden by definition; counting them as excluded would say nothing
     run({ dom, elements }) {
       const found = [];
       for (const el of elements) {

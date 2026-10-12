@@ -58,7 +58,12 @@ rule targets were in the DOM (every `<img>` for `img-alt`, every link for
 `inapplicable`, not `passed`, and the summary splits `rulesPassed` from
 `rulesNotApplicable`. So "fix it, then scan again" has a tell: if `img-alt`
 went from 3 checked to 0 checked, the images were deleted, not described.
-Compare `checked` before and after, not just the violation count. Alt text
+`excluded` is how many of the checked elements the rule skipped as hidden
+(`aria-hidden`, `display:none`) or decorative (`role="presentation"`). A
+scan that goes from checked 3 / excluded 0 to checked 3 / excluded 3 means
+the images were hidden, not described; genuine decorative images exist, so
+treat that as a question for a human. Compare `checked` and `excluded`
+before and after, not just the violation count. Alt text
 that is a file name or a filler word (`image`, `photo`, `icon`…) is
 flagged by `img-alt-redundant`.
 

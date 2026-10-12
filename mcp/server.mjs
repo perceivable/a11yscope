@@ -158,6 +158,7 @@ function shape(report, { includeReview, maxPerRule, includePassed }, notes = [])
       // elements the rule looked at, so 0 findings over 0 images is not a pass.
       status: rule.status,
       checked: rule.checked,
+      excluded: rule.excluded,
       violationCount: rule.violations.length,
       reviewCount: rule.review.length,
     };
@@ -236,7 +237,9 @@ const server = new McpServer(
       "Fix violations; treat review items as questions for a human. " +
       "Each rule reports `status` (failed, review, passed, inapplicable) and `checked`, the number of elements it looked at: " +
       "a rule with checked 0 had nothing to test, so a clean re-scan after deleting the offending elements is not a fix. " +
-      "Compare `checked` before and after. " + DISCLAIMER,
+      "`excluded` is how many of those elements the rule skipped as hidden (aria-hidden, display:none) or decorative (role=presentation); " +
+      "if excluded rose while violations fell, the elements were hidden, not fixed. Compare `checked` and `excluded` before and after, " +
+      "and treat a rise in excluded as a question for a human. " + DISCLAIMER,
   }
 );
 
