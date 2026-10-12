@@ -46,6 +46,7 @@ const KO = {
     "count-violations": "위반 {violations}건",
     "count-review": "검토 {review}건",
     "count-passed": "통과",
+    "count-not-applicable": "해당 없음 (검사할 요소 없음)",
     "level-best-practice": "권장 사항",
     "impact-critical": "치명적",
     "impact-serious": "심각",
@@ -84,7 +85,7 @@ const KO = {
     "standard": "기준",
     "standard-value": "WCAG 2.2 Level AA (자동 검사 가능 항목)",
     "result": "결과",
-    "result-value": "위반 {violations}건, 검토 필요 {review}건, 검사 {run}개 중 {passed}개 통과",
+    "result-value": "위반 {violations}건, 검토 필요 {review}건, 검사 {run}개 중 {passed}개 통과, {notApplicable}개는 해당 요소 없음",
     "scope": "범위",
     "scope-value": "요소 {elements}개, 최상위 프레임만",
     "disclaimer":

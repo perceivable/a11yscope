@@ -16,6 +16,8 @@
       'Remove user-scalable="no" and raise maximum-scale to at least 5. Blocking ' +
       "pinch zoom is one of the most consequential single lines of HTML for " +
       "low-vision users, and it is trivial to fix.",
+    // What this rule looks at, so the report can tell "nothing to test" from "tested and fine".
+    applies: (el) => el.tagName === "META" && el.getAttribute("name") === "viewport",
     run({ document }) {
       const meta = document.querySelector('meta[name="viewport"]');
       if (!meta) return [];
@@ -51,6 +53,8 @@
       "A positive tabindex pulls the element ahead of everything else in the tab " +
       "order, so focus jumps around unpredictably. Order the DOM correctly and " +
       'use tabindex="0" instead.',
+    // What this rule looks at, so the report can tell "nothing to test" from "tested and fine".
+    applies: (el) => el.hasAttribute("tabindex"),
     run({ dom, elements }) {
       const found = [];
       for (const el of elements) {
@@ -80,6 +84,8 @@
       "A keyboard user can still tab to the element, but a screen reader " +
       "announces nothing — focus appears to vanish. Either remove aria-hidden " +
       'or take the element out of the tab order with tabindex="-1".',
+    // What this rule looks at, so the report can tell "nothing to test" from "tested and fine".
+    applies: (el, { dom }) => Boolean(el.closest('[aria-hidden="true"]')) && dom.isFocusable(el),
     run({ dom, elements }) {
       const found = [];
       for (const el of elements) {
@@ -119,6 +125,8 @@
       "A button inside a link (or vice versa) produces an accessibility tree " +
       "that no assistive technology can represent sensibly. Put the controls " +
       "side by side instead.",
+    // What this rule looks at, so the report can tell "nothing to test" from "tested and fine".
+    applies: (el) => el.matches("a[href],button,input,select,textarea,[role='button'],[role='link'],[role='checkbox'],[role='radio'],[role='tab']"),
     run({ dom, elements }) {
       const found = [];
       const interactive = "a[href],button,input,select,textarea,[role='button'],[role='link'],[role='checkbox'],[role='radio'],[role='tab']";
@@ -261,6 +269,8 @@
       "enough space around it that a 24px circle centred on it reaches no other " +
       "target. Links inside a sentence are exempt, and so are targets that " +
       "already have that clearance.",
+    // What this rule looks at, so the report can tell "nothing to test" from "tested and fine".
+    applies: (el) => el.matches(TARGET_SELECTOR),
     run({ dom, elements }) {
       const found = [];
 
@@ -357,6 +367,8 @@
       "Unexpected audio drowns out a screen reader, making the page unusable. " +
       "Either start muted, keep it under three seconds, or give the user a " +
       "pause control at the very top of the page.",
+    // What this rule looks at, so the report can tell "nothing to test" from "tested and fine".
+    applies: (el) => el.tagName === "AUDIO" || el.tagName === "VIDEO",
     run({ dom, elements }) {
       const found = [];
       for (const el of elements) {
@@ -384,6 +396,8 @@
       'Add a <track kind="captions"> to the video. Automated checking cannot ' +
       "verify caption quality or whether a platform player supplies them, so " +
       "this is flagged for review rather than failed outright.",
+    // What this rule looks at, so the report can tell "nothing to test" from "tested and fine".
+    applies: (el) => el.tagName === "VIDEO",
     run({ dom, elements }) {
       const found = [];
       for (const el of elements) {
@@ -429,6 +443,8 @@
       "An unrecognised role is ignored entirely, so the element falls back to " +
       "its native semantics — usually a plain <div> with none. Check the " +
       "spelling against the ARIA specification.",
+    // What this rule looks at, so the report can tell "nothing to test" from "tested and fine".
+    applies: (el) => Boolean((el.getAttribute("role") || "").trim()),
     run({ dom, elements }) {
       const found = [];
       for (const el of elements) {
@@ -469,6 +485,8 @@
       "A role makes a promise about state. role=\"checkbox\" without " +
       "aria-checked leaves the screen reader with nothing to announce, so the " +
       "user cannot tell whether the box is ticked.",
+    // What this rule looks at, so the report can tell "nothing to test" from "tested and fine".
+    applies: (el) => Boolean(REQUIRED_ARIA[(el.getAttribute("role") || "").trim().toLowerCase()]),
     run({ dom, elements }) {
       const found = [];
       for (const el of elements) {
@@ -503,6 +521,8 @@
       "An autocomplete token lets browsers and assistive tools fill the field, " +
       "and lets symbol-support software show the right icon. Add e.g. " +
       'autocomplete="email" or autocomplete="tel".',
+    // What this rule looks at, so the report can tell "nothing to test" from "tested and fine".
+    applies: (el) => el.tagName === "INPUT" && ["email", "tel", "tel-national"].includes((el.getAttribute("type") || "text").toLowerCase()),
     run({ dom, elements }) {
       const found = [];
       const expected = {
@@ -537,6 +557,8 @@
       "outline: none with no replacement leaves keyboard users unable to tell " +
       "where they are on the page. If you remove the default ring, add your own " +
       "visible focus style with box-shadow or a border.",
+    // What this rule looks at, so the report can tell "nothing to test" from "tested and fine".
+    applies: (el, { dom }) => dom.isFocusable(el),
     run({ dom, elements }) {
       const found = [];
       // Only sample a bounded number of controls: this requires focusing each

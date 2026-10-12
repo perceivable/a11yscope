@@ -42,10 +42,11 @@ export function buildReport(report, t = null) {
           violations: summary.violations,
           review: summary.review,
           passed: summary.rulesPassed,
+          notApplicable: summary.rulesNotApplicable || 0,
           run: summary.rulesRun,
         },
         `${summary.violations} violation(s), ${summary.review} item(s) needing review, ` +
-          `${summary.rulesPassed} of ${summary.rulesRun} checks passed`
+          `${summary.rulesPassed} of ${summary.rulesRun} checks passed, ${summary.rulesNotApplicable || 0} had nothing to test`
       )
   );
   lines.push(

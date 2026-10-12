@@ -49,6 +49,29 @@ decision), `include_passed`, `max_findings_per_rule`, viewport size.
 Typical prompt: *"Scan http://localhost:3000 with a11yscope and fix every
 violation, then scan again."*
 
+## Reading a result
+
+Every rule comes back with a `status` (`failed`, `review`, `passed` or
+`inapplicable`) and a `checked` count: how many elements of the kind the
+rule targets were in the DOM (every `<img>` for `img-alt`, every link for
+`link-name`, 1 for page-level rules). A rule with nothing to test is
+`inapplicable`, not `passed`, and the summary splits `rulesPassed` from
+`rulesNotApplicable`. So "fix it, then scan again" has a tell: if `img-alt`
+went from 3 checked to 0 checked, the images were deleted, not described.
+Compare `checked` before and after, not just the violation count. Alt text
+that is a file name or a filler word (`image`, `photo`, `icon`…) is
+flagged by `img-alt-redundant`.
+
+`scan_html` adds `notes` when the markup is a fragment (page-level checks
+then describe the fragment, not the page it will live in) or has no
+stylesheet (contrast and focus results reflect browser defaults).
+
+Scope: the top document only. Open shadow roots are entered and selectors
+cross them with `>>>`; closed shadow roots cannot be read by anything.
+Frames are not entered: `iframe-title` checks the frame element itself, and
+`summary.iframesNotEntered` plus a note tell you how many frames to scan
+separately by URL.
+
 ## What it checks
 
 Text alternatives (images, form labels, buttons, links, frames, SVG), colour

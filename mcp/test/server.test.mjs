@@ -45,6 +45,19 @@ try {
   const ids = (snippet.rules || []).map((r) => r.id);
   check(ids.includes("img-alt") && ids.includes("link-name"), `scan_html → fires ${ids.join(", ")}`);
 
+  check(!(snippet.notes || []).some((n) => /fragment/.test(n)) && (snippet.notes || []).some((n) => /stylesheet/.test(n)), "full document without CSS → stylesheet note only");
+
+  // The deletion loophole: fixing img-alt by removing the <img> must not look like a pass.
+  const before = parse(await call("scan_html", { html: '<main><img src="a.png" width="120" height="80"><iframe title="ad" src="about:blank"></iframe></main>', include_passed: true }));
+  const imgBefore = before.rules.find((r) => r.id === "img-alt");
+  check(imgBefore?.status === "failed" && imgBefore.checked === 1, `one image, no alt → img-alt ${imgBefore?.status}, checked ${imgBefore?.checked}`);
+  check((before.notes || []).some((n) => /fragment/.test(n)) && before.summary.iframesNotEntered === 1 && before.notes.some((n) => /iframe/.test(n)), "fragment + iframe → notes say fragment and frame not entered");
+  const after = parse(await call("scan_html", { html: "<main></main>", include_passed: true }));
+  const imgAfter = after.rules.find((r) => r.id === "img-alt");
+  check(imgAfter?.status === "inapplicable" && imgAfter.checked === 0, `image deleted → img-alt ${imgAfter?.status}, checked ${imgAfter?.checked}`);
+  check(after.summary.rulesNotApplicable > 10 && after.summary.rulesPassed + after.summary.rulesNotApplicable + after.summary.rulesFailed <= 31, `empty fragment → ${after.summary.rulesPassed} passed, ${after.summary.rulesNotApplicable} not applicable`);
+  check(before.rules.every((r) => ["failed", "review", "passed", "inapplicable"].includes(r.status) && (r.status === "inapplicable") === (r.checked === 0)), "status and checked agree on every rule");
+
   const capped = parse(await call("scan_page", { url: join(fixtures, "fixture.html"), max_findings_per_rule: 1 }));
   check(capped.rules.every((r) => (r.violations || []).length <= 1 && r.violationCount >= (r.violations || []).length), "max_findings_per_rule caps output but keeps counts");
 

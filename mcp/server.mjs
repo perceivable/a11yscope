@@ -141,7 +141,7 @@ function trimFinding(f, snippetChars) {
   };
 }
 
-function shape(report, { includeReview, maxPerRule, includePassed }) {
+function shape(report, { includeReview, maxPerRule, includePassed }, notes = []) {
   const rules = [];
   for (const rule of report.rules) {
     const hasViolations = rule.violations.length > 0;
@@ -154,6 +154,10 @@ function shape(report, { includeReview, maxPerRule, includePassed }) {
       level: rule.level,
       impact: rule.impact,
       help: rule.help,
+      // "failed" | "review" | "passed" | "inapplicable". `checked` is how many
+      // elements the rule looked at, so 0 findings over 0 images is not a pass.
+      status: rule.status,
+      checked: rule.checked,
       violationCount: rule.violations.length,
       reviewCount: rule.review.length,
     };
@@ -161,16 +165,40 @@ function shape(report, { includeReview, maxPerRule, includePassed }) {
     if (hasReview) entry.review = rule.review.slice(0, maxPerRule).map((f) => trimFinding(f, 240));
     rules.push(entry);
   }
+  const s = report.summary;
+  if (s.iframesNotEntered > 0) {
+    notes.push(`${s.iframesNotEntered} <iframe>/<frame> element(s) were not entered; the report covers the top document only. Scan each frame's URL separately.`);
+  }
   return {
     url: report.url,
     title: report.title,
     scannedAt: report.scannedAt,
     engineVersion: manifest.engineVersion,
-    summary: report.summary,
+    summary: s,
+    ...(notes.length ? { notes } : {}),
     rules,
     engineErrors: report.engineErrors,
     disclaimer: DISCLAIMER,
   };
+}
+
+/** What a scan_html caller should know about the markup they handed in. */
+function htmlNotes(html, baseUrl) {
+  const notes = [];
+  if (!/<html[\s>]/i.test(html) || !/<body[\s>]/i.test(html)) {
+    notes.push(
+      "This is a fragment, not a full document, so page-level checks (doc-lang, doc-title, page-has-h1, " +
+        "landmark-main, skip-link, heading-order, viewport-scalable) describe the fragment alone, not the page it will live in. " +
+        "Their results here say nothing about the whole page."
+    );
+  }
+  if (!baseUrl && !/<style[\s>]/i.test(html) && !/rel=["']?stylesheet/i.test(html)) {
+    notes.push(
+      "Scanned without any stylesheet, so contrast, focus-outline, target-size and visibility checks reflect browser defaults, " +
+        "not the app's CSS. Inline the CSS or pass base_url for a real answer."
+    );
+  }
+  return notes;
 }
 
 // Wraps a tool handler so a stdin EOF waits for calls that are still running.
@@ -205,13 +233,16 @@ const server = new McpServer(
       "A11yScope checks web pages against the automatically testable parts of WCAG 2.2 Level AA " +
       "(31 checks: text alternatives, contrast, structure, keyboard/pointer/ARIA). Use scan_page for a URL " +
       "or a file on disk, scan_html for markup you just generated, list_rules to see what is checked. " +
-      "Fix violations; treat review items as questions for a human. " + DISCLAIMER,
+      "Fix violations; treat review items as questions for a human. " +
+      "Each rule reports `status` (failed, review, passed, inapplicable) and `checked`, the number of elements it looked at: " +
+      "a rule with checked 0 had nothing to test, so a clean re-scan after deleting the offending elements is not a fix. " +
+      "Compare `checked` before and after. " + DISCLAIMER,
   }
 );
 
 const scanOptions = {
   include_review: z.boolean().default(false).describe("Also return items that need a human decision (not failures)."),
-  include_passed: z.boolean().default(false).describe("Also list rules that passed, with zero findings."),
+  include_passed: z.boolean().default(false).describe("Also list rules with zero findings, each with status passed or inapplicable and its checked count."),
   max_findings_per_rule: z.number().int().min(1).max(200).default(25).describe("Cap on findings returned per rule."),
   viewport_width: z.number().int().min(320).max(3840).default(1366),
   viewport_height: z.number().int().min(320).max(2160).default(900),
@@ -278,7 +309,9 @@ server.registerTool(
         }
         return runEngine(page);
       });
-      return textResult(shape(report, { includeReview: include_review, includePassed: include_passed, maxPerRule: max_findings_per_rule }));
+      return textResult(
+        shape(report, { includeReview: include_review, includePassed: include_passed, maxPerRule: max_findings_per_rule }, htmlNotes(html, base_url))
+      );
     } catch (error) {
       return textResult({ error: `Could not scan the HTML: ${error.message}` }, true);
     }

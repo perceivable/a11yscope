@@ -19,6 +19,8 @@
       "Add alt text describing what the image conveys. If the image is purely " +
       'decorative, use alt="" so assistive technology skips it — omitting the ' +
       "attribute entirely makes screen readers read out the file name instead.",
+    // What this rule looks at, so the report can tell "nothing to test" from "tested and fine".
+    applies: (el) => el.tagName === "IMG",
     run({ dom, elements }) {
       const found = [];
       for (const el of elements) {
@@ -52,6 +54,8 @@
       "Describe the content or purpose of the image. File names and the words " +
       '"image", "photo" or "graphic" add nothing — the screen reader already ' +
       "announces that it is an image.",
+    // What this rule looks at, so the report can tell "nothing to test" from "tested and fine".
+    applies: (el) => el.tagName === "IMG",
     run({ dom, elements }) {
       const found = [];
       const filePattern = /\.(jpe?g|png|gif|svg|webp|avif|bmp)$/i;
@@ -91,6 +95,11 @@
       "Associate a <label for> with the control, wrap the control in a <label>, " +
       "or add aria-label / aria-labelledby. A placeholder is not a label: it " +
       "disappears as soon as the user types.",
+    // What this rule looks at, so the report can tell "nothing to test" from "tested and fine".
+    applies: (el) =>
+      el.tagName === "SELECT" ||
+      el.tagName === "TEXTAREA" ||
+      (el.tagName === "INPUT" && !["hidden", "submit", "reset", "button", "image"].includes((el.getAttribute("type") || "text").toLowerCase())),
     run({ dom, elements }) {
       const found = [];
       const skipTypes = new Set(["hidden", "submit", "reset", "button", "image"]);
@@ -126,6 +135,11 @@
     help:
       "Icon-only buttons need aria-label, or visually hidden text inside the " +
       "button. Screen reader users otherwise hear only 'button'.",
+    // What this rule looks at, so the report can tell "nothing to test" from "tested and fine".
+    applies: (el) =>
+      el.tagName === "BUTTON" ||
+      el.getAttribute("role") === "button" ||
+      (el.tagName === "INPUT" && (el.getAttribute("type") || "").toLowerCase() === "button"),
     run({ dom, elements }) {
       const found = [];
       for (const el of elements) {
@@ -151,6 +165,8 @@
     help:
       "Give the link text that describes its destination. An image-only link " +
       "needs alt text on the image; an icon-only link needs aria-label.",
+    // What this rule looks at, so the report can tell "nothing to test" from "tested and fine".
+    applies: (el) => (el.tagName === "A" && el.hasAttribute("href")) || el.getAttribute("role") === "link",
     run({ dom, elements }) {
       const found = [];
       for (const el of elements) {
@@ -178,6 +194,8 @@
       "link on the page, and a list of twelve identical entries tells them " +
       "nothing. Moving the meaningful words into the link fixes that. Requiring " +
       "the text to stand alone is 2.4.9, which is Level AAA.",
+    // What this rule looks at, so the report can tell "nothing to test" from "tested and fine".
+    applies: (el) => el.tagName === "A" && el.hasAttribute("href"),
     run({ dom, elements }) {
       const found = [];
       const generic = new Set([
@@ -216,6 +234,8 @@
     help:
       "Add title=\"…\" describing the frame's content, so users can decide " +
       "whether to enter it. Empty or generic titles do not help.",
+    // What this rule looks at, so the report can tell "nothing to test" from "tested and fine".
+    applies: (el) => el.tagName === "IFRAME" || el.tagName === "FRAME",
     run({ dom, elements }) {
       const found = [];
       for (const el of elements) {
@@ -250,6 +270,8 @@
       'If the SVG conveys information, give it role="img" plus aria-label or a ' +
       '<title> child. If it is decorative, add aria-hidden="true" so it is ' +
       "skipped rather than announced as an unlabelled graphic.",
+    // What this rule looks at, so the report can tell "nothing to test" from "tested and fine".
+    applies: (el) => el.tagName.toLowerCase() === "svg",
     run({ dom, elements }) {
       const found = [];
       for (const el of elements) {

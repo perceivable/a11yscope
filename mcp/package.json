@@ -1,6 +1,6 @@
 {
   "name": "a11yscope-mcp",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "MCP server that checks web pages and HTML against WCAG 2.2 AA — the A11yScope engine for AI coding agents",
   "mcpName": "io.github.perceivable/a11yscope",
   "type": "module",

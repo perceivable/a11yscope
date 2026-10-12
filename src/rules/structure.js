@@ -17,6 +17,8 @@
       'Add lang="en" (or the correct code) to the <html> element. Without it a ' +
       "screen reader reads the page with the wrong pronunciation rules, which " +
       "can make it unintelligible.",
+    // What this rule looks at, so the report can tell "nothing to test" from "tested and fine".
+    scope: "page",
     run({ document }) {
       const html = document.documentElement;
       const lang = (html.getAttribute("lang") || "").trim();
@@ -47,6 +49,8 @@
       "The <title> is the first thing announced when the page loads and it is " +
       "what appears in the tab and in search results. It should describe this " +
       "page specifically, not just the site name.",
+    // What this rule looks at, so the report can tell "nothing to test" from "tested and fine".
+    scope: "page",
     run({ document }) {
       const title = (document.title || "").trim();
       const target = document.querySelector("title") || document.documentElement;
@@ -79,6 +83,8 @@
       "Going from <h2> straight to <h4> breaks the outline that screen reader " +
       "users navigate by. Use the next level down, and style it with CSS if you " +
       "need it to look smaller.",
+    // What this rule looks at, so the report can tell "nothing to test" from "tested and fine".
+    applies: (el) => /^H[1-6]$/.test(el.tagName) || el.getAttribute("role") === "heading",
     run({ dom, elements }) {
       const found = [];
       const headings = elements.filter((el) => {
@@ -111,6 +117,8 @@
     help:
       "An empty heading is announced as a heading with no content, which is " +
       "confusing. If you only need spacing, use CSS instead of a heading element.",
+    // What this rule looks at, so the report can tell "nothing to test" from "tested and fine".
+    applies: (el) => /^H[1-6]$/.test(el.tagName) || el.getAttribute("role") === "heading",
     run({ dom, elements }) {
       const found = [];
       for (const el of elements) {
@@ -137,6 +145,8 @@
     help:
       "A single <h1> naming the page gives every other heading something to " +
       "hang off. Multiple h1 elements leave users unsure what the page is about.",
+    // What this rule looks at, so the report can tell "nothing to test" from "tested and fine".
+    scope: "page",
     run({ dom, elements, document }) {
       const h1s = elements.filter(
         (el) => el.tagName === "H1" && dom.isVisible(el) && !dom.isAriaHidden(el)
@@ -169,6 +179,8 @@
     help:
       "Wrapping the primary content in <main> lets screen reader users jump " +
       "straight past the navigation with a single keystroke.",
+    // What this rule looks at, so the report can tell "nothing to test" from "tested and fine".
+    scope: "page",
     run({ dom, elements, document }) {
       const mains = elements.filter(
         (el) => (el.tagName === "MAIN" || el.getAttribute("role") === "main") && !dom.isAriaHidden(el)
@@ -202,6 +214,8 @@
       'A "skip to main content" link as the first focusable element saves ' +
       "keyboard users from tabbing through the whole menu on every page. It can " +
       "be visually hidden until focused.",
+    // What this rule looks at, so the report can tell "nothing to test" from "tested and fine".
+    scope: "page",
     run({ dom, elements, document }) {
       const hasLandmark = elements.some(
         (el) => el.tagName === "MAIN" || el.getAttribute("role") === "main"
@@ -236,6 +250,8 @@
       "Use <th> for header cells so screen readers can announce which row and " +
       'column a value belongs to. If the table is only there for layout, add ' +
       'role="presentation" instead.',
+    // What this rule looks at, so the report can tell "nothing to test" from "tested and fine".
+    applies: (el) => el.tagName === "TABLE",
     run({ dom, elements }) {
       const found = [];
       for (const el of elements) {
@@ -270,6 +286,8 @@
     help:
       "<ul> and <ol> may only contain <li> (plus <script> and <template>). " +
       "Stray elements break the item count that screen readers announce.",
+    // What this rule looks at, so the report can tell "nothing to test" from "tested and fine".
+    applies: (el) => el.tagName === "UL" || el.tagName === "OL",
     run({ dom, elements }) {
       const found = [];
       const allowed = new Set(["LI", "SCRIPT", "TEMPLATE"]);
@@ -301,6 +319,8 @@
       "WCAG 2.2 retired the blanket duplicate-id requirement, but a duplicate " +
       "id that is the target of aria-labelledby, aria-describedby or label[for] " +
       "still breaks the association — the browser resolves only the first match.",
+    // What this rule looks at, so the report can tell "nothing to test" from "tested and fine".
+    applies: (el) => Boolean(el.id),
     run({ document, elements }) {
       const byId = new Map();
       for (const el of elements) {

@@ -21,7 +21,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 
 const PROFILE = join(homedir(), ".config", "perceivable", "devto-profile");
-const ARTICLE = 4795578;
+const ARTICLES = [4795578, 4831117]; // every article whose comments we answer
 const args = process.argv.slice(2);
 const flag = (name) => args.includes(name);
 const value = (name) => (args.includes(name) ? args[args.indexOf(name) + 1] : null);
@@ -147,7 +147,7 @@ try {
     let reply = null;
     for (let i = 0; i < 10 && !reply; i++) {
       await sleep(3000);
-      reply = findReply(await api(`/comments?a_id=${ARTICLE}`), parentCode, started);
+      for (const id of ARTICLES) reply ||= findReply(await api(`/comments?a_id=${id}`), parentCode, started);
     }
     if (!reply) throw new Error("submitted, but the reply did not appear in the API within 30s — check the site");
     console.log(`posted: https://dev.to/perceivable/comment/${reply.id_code} (${reply.created_at})`);

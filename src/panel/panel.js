@@ -257,7 +257,9 @@ function renderRule(rule) {
         ? t.ui("count-violations", counts, `${rule.violations.length} violations`)
         : rule.review.length
           ? t.ui("count-review", counts, `${rule.review.length} to review`)
-          : t.ui("count-passed", null, "passed");
+          : rule.status === "inapplicable"
+            ? t.ui("count-not-applicable", null, "not applicable (nothing to test)")
+            : t.ui("count-passed", null, "passed");
   toggle.setAttribute("aria-label", `${text.title} — ${countLabel}`);
 
   toggle.append(marker, body, count);

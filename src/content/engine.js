@@ -52,6 +52,30 @@
         else violations.push(serialized);
       }
 
+      // How many elements the rule had to look at. A rule that found nothing
+      // because there was nothing to test is "inapplicable", not "passed":
+      // deleting every <img> must not read as fixing the alt text.
+      let checked = null;
+      if (rule.scope === "page") {
+        checked = 1;
+      } else if (typeof rule.applies === "function") {
+        checked = 0;
+        for (const el of elements) {
+          try {
+            if (rule.applies(el, ctx)) checked++;
+          } catch {
+            // an element that throws on inspection is simply not counted
+          }
+        }
+      }
+      const status = violations.length
+        ? "failed"
+        : review.length
+          ? "review"
+          : checked === 0
+            ? "inapplicable"
+            : "passed";
+
       ruleResults.push({
         id: rule.id,
         title: rule.title,
@@ -61,6 +85,8 @@
         help: rule.help,
         violations,
         review,
+        checked,
+        status,
         passed: violations.length === 0 && review.length === 0,
       });
     }
@@ -87,8 +113,13 @@
         review: reviewCount,
         rulesRun: ruleResults.length,
         rulesFailed: ruleResults.filter((r) => r.violations.length > 0).length,
-        rulesPassed: ruleResults.filter((r) => r.passed).length,
+        rulesPassed: ruleResults.filter((r) => r.status === "passed").length,
+        rulesNotApplicable: ruleResults.filter((r) => r.status === "inapplicable").length,
         elementsScanned: elements.length,
+        // Open shadow roots are walked; closed ones cannot be. Frames are not
+        // entered at all, so the caller knows what this report does not cover.
+        shadowRootsEntered: elements.filter((el) => el.shadowRoot).length,
+        iframesNotEntered: elements.filter((el) => el.tagName === "IFRAME" || el.tagName === "FRAME").length,
         durationMs: Math.round(performance.now() - startedAt),
       },
       rules: ruleResults,

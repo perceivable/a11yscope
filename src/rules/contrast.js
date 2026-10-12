@@ -169,6 +169,8 @@
       "18.66px when bold). Darken the text or lighten the background until the " +
       "ratio is met — this is the most frequently cited failure in " +
       "accessibility complaints.",
+    // What this rule looks at, so the report can tell "nothing to test" from "tested and fine".
+    applies: (el) => Boolean(ownText(el)),
     run({ dom, color, elements }) {
       const found = [];
       const seen = new Set();
@@ -323,6 +325,8 @@
       "Placeholders are content, so the 4.5:1 rule applies to them too. Note " +
       "that a placeholder is not a label either — it disappears as soon as the " +
       "user types.",
+    // What this rule looks at, so the report can tell "nothing to test" from "tested and fine".
+    applies: (el) => (el.tagName === "INPUT" || el.tagName === "TEXTAREA") && Boolean((el.getAttribute("placeholder") || "").trim()),
     run({ dom, color, elements }) {
       const found = [];
       for (const el of elements) {
