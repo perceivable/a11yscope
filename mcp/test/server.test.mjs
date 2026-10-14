@@ -77,6 +77,9 @@ try {
   const capped = parse(await call("scan_page", { url: join(fixtures, "fixture.html"), max_findings_per_rule: 1 }));
   check(capped.rules.every((r) => (r.violations || []).length <= 1 && r.violationCount >= (r.violations || []).length), "max_findings_per_rule caps output but keeps counts");
 
+  const challenge = await call("scan_page", { url: join(here, "challenge.html") });
+  check(challenge.isError === true && /bot check/.test(challenge.content[0].text), "bot-check interstitial → refused with isError, not reported as clean");
+
   const bad = await call("scan_page", { url: "http://127.0.0.1:9/nothing" });
   check(bad.isError === true && /Could not scan/.test(bad.content[0].text), "unreachable URL → isError with message");
 } finally {

@@ -45,6 +45,9 @@ browser, set `A11YSCOPE_CHROME` to the executable path.
 Options on both scan tools: `include_review` (items that need a human
 decision), `include_passed`, `max_findings_per_rule`, viewport size.
 `scan_page` also takes `wait_ms` for pages that render late.
+If a site answers with a bot check (Cloudflare "Just a moment…" and the
+like), `scan_page` refuses with an error rather than scanning the
+interstitial, which would come back almost clean and mean nothing.
 
 Typical prompt: *"Scan http://localhost:3000 with a11yscope and fix every
 violation, then scan again."*

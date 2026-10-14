@@ -221,6 +221,20 @@ async function runEngine(page) {
   return report;
 }
 
+/**
+ * A bot-check interstitial scans as a near-empty, near-clean page, which is
+ * the most misleading result this tool could return. Recognise the common
+ * ones (Cloudflare, Akamai, PerimeterX) and refuse instead.
+ */
+function botChallenge(page) {
+  return page.evaluate(() => {
+    const title = document.title || "";
+    if (/^(Just a moment|Attention Required|Access denied|Please verify you are a human|잠시만 기다리십시오|しばらくお待ちください)/i.test(title)) return true;
+    if (document.querySelector('#challenge-running, #challenge-form, #cf-chl-widget, [id^="cf-chl"], #px-captcha, #sec-if-container, iframe[src*="challenges.cloudflare.com"]')) return true;
+    return document.body && document.body.innerText.trim().length < 400 && /enable javascript and cookies to continue|verifying you are human|checking your browser/i.test(document.body.innerText);
+  }).catch(() => false);
+}
+
 /* ---------- shaping ---------- */
 
 function trimFinding(f, snippetChars) {
@@ -364,8 +378,15 @@ server.registerTool(
       const report = await withPage({ width: viewport_width, height: viewport_height }, async (page) => {
         await page.goto(target, { waitUntil: "networkidle2", timeout: 45000 });
         if (wait_ms) await new Promise((r) => setTimeout(r, wait_ms));
+        if (await botChallenge(page)) return { blocked: true };
         return runEngine(page);
       });
+      if (report.blocked) {
+        return textResult(
+          { error: `${target} answered with a bot check (Cloudflare "Just a moment…" or similar) instead of the page. A scan of that interstitial would say nothing about the site, so none is reported. Run the site locally or from a host the site trusts.` },
+          true
+        );
+      }
       return textResult(shape(report, { includeReview: include_review, includePassed: include_passed, maxPerRule: max_findings_per_rule }));
     } catch (error) {
       return textResult({ error: `Could not scan ${target}: ${error.message}` }, true);
