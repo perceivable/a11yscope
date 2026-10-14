@@ -166,11 +166,13 @@ try {
 
     // Confirm through the API, not the DOM: the reply must exist on the server.
     let reply = null;
-    for (let i = 0; i < 10 && !reply; i++) {
+    // The public API can lag the site by a minute or more (2026-10-14: a reply
+    // that was live took >30s to appear), so poll for up to two minutes.
+    for (let i = 0; i < 40 && !reply; i++) {
       await sleep(3000);
       for (const id of ARTICLES) reply ||= findReply(await api(`/comments?a_id=${id}`), parentCode, started);
     }
-    if (!reply) throw new Error("submitted, but the reply did not appear in the API within 30s — check the site");
+    if (!reply) throw new Error("submitted, but the reply did not appear in the API within 2 minutes — check the site before retrying, it may be there");
     console.log(`posted: https://dev.to/perceivable/comment/${reply.id_code} (${reply.created_at})`);
   }
 } finally {
