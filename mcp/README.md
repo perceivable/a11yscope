@@ -71,11 +71,14 @@ flagged by `img-alt-redundant`.
 then describe the fragment, not the page it will live in) or has no
 stylesheet (contrast and focus results reflect browser defaults).
 
-Scope: the top document only. Open shadow roots are entered and selectors
-cross them with `>>>`; closed shadow roots cannot be read by anything.
-Frames are not entered: `iframe-title` checks the frame element itself, and
-`summary.iframesNotEntered` plus a note tell you how many frames to scan
-separately by URL.
+Scope: the top document plus every same-origin frame inside it, at any
+depth. Findings from a frame carry the frame's path in their selector
+(`iframe#chat >>> button`), and page-level checks (language, title, h1,
+landmarks, skip link, heading order) apply to the top document only.
+Cross-origin frames are third-party content the author cannot change, so
+they are counted in `summary.iframesNotEntered` and named in a note, not
+scanned. Open shadow roots are entered the same way; closed shadow roots
+cannot be read by anything that runs in the page.
 
 ## What it checks
 

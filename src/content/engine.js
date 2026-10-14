@@ -98,6 +98,7 @@
         checked,
         excluded,
         status,
+        scope: rule.scope === "page" ? "page" : "elements",
         passed: violations.length === 0 && review.length === 0,
       });
     }

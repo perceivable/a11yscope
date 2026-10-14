@@ -126,9 +126,99 @@ async function withPage(viewport, fn) {
   }
 }
 
+async function runEngineIn(frame) {
+  for (const src of LIB_AND_RULES) await frame.evaluate(src);
+  return frame.evaluate(ENGINE);
+}
+
+// Rules that judge a document as a whole say nothing useful about a frame's
+// document (a frame rarely has its own h1, main landmark or skip link).
+const FRAME_SKIP = new Set(["doc-lang", "doc-title", "page-has-h1", "landmark-main", "skip-link", "heading-order", "viewport-scalable"]);
+
+function sameOrigin(frameUrl, pageUrl) {
+  if (/^about:/.test(frameUrl)) return true; // srcdoc and blank frames belong to the page
+  try {
+    const a = new URL(frameUrl).origin;
+    const b = new URL(pageUrl).origin;
+    return a !== "null" && a === b; // opaque origins (data:, error pages) never match
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Runs the engine in the top document and in every same-origin frame below
+ * it, merging the frames' findings into the top report with selectors
+ * prefixed by the frame element's path ("iframe#chat >>> button").
+ * Cross-origin frames are third-party content the author cannot fix, so they
+ * are counted, not entered.
+ */
 async function runEngine(page) {
-  for (const src of LIB_AND_RULES) await page.evaluate(src);
-  return page.evaluate(ENGINE);
+  const main = page.mainFrame();
+  const report = await runEngineIn(main);
+  const prefixes = new Map([[main, ""]]);
+  const entered = [];
+  const skipped = [];
+  const queue = [...main.childFrames()];
+  while (queue.length) {
+    const frame = queue.shift();
+    const parentPrefix = prefixes.get(frame.parentFrame());
+    if (parentPrefix === undefined) continue; // parent was not entered
+    if (!sameOrigin(frame.url(), page.url())) {
+      skipped.push(frame.url());
+      continue;
+    }
+    let prefix = null;
+    try {
+      const handle = await frame.frameElement();
+      const sel = handle ? await handle.evaluate((el) => globalThis.__A11YSCOPE__.lib.dom.selectorFor(el)) : null;
+      if (sel) prefix = `${parentPrefix}${sel} >>> `;
+    } catch {
+      prefix = null;
+    }
+    let sub = null;
+    if (prefix !== null) {
+      try {
+        sub = await runEngineIn(frame);
+      } catch {
+        sub = null;
+      }
+    }
+    if (!sub) {
+      skipped.push(frame.url());
+      continue;
+    }
+    prefixes.set(frame, prefix);
+    entered.push(frame.url());
+    queue.push(...frame.childFrames());
+    const byId = new Map(report.rules.map((r) => [r.id, r]));
+    for (const r of sub.rules) {
+      const target = byId.get(r.id);
+      if (!target || FRAME_SKIP.has(r.id)) continue;
+      const relocate = (f) => ({ ...f, selector: prefix + f.selector });
+      target.violations.push(...r.violations.map(relocate));
+      target.review.push(...r.review.map(relocate));
+      if (typeof r.checked === "number") target.checked = (target.checked ?? 0) + r.checked;
+      if (typeof r.excluded === "number") target.excluded = (target.excluded ?? 0) + r.excluded;
+    }
+    report.engineErrors.push(...sub.engineErrors.map((e) => ({ ...e, frame: frame.url() })));
+    report.summary.elementsScanned += sub.summary.elementsScanned;
+  }
+  if (entered.length || skipped.length) {
+    for (const r of report.rules) {
+      r.status = r.violations.length ? "failed" : r.review.length ? "review" : r.checked === 0 ? "inapplicable" : "passed";
+      r.passed = r.violations.length === 0 && r.review.length === 0;
+    }
+    const s = report.summary;
+    s.violations = report.rules.reduce((n, r) => n + r.violations.length, 0);
+    s.review = report.rules.reduce((n, r) => n + r.review.length, 0);
+    s.rulesFailed = report.rules.filter((r) => r.violations.length > 0).length;
+    s.rulesPassed = report.rules.filter((r) => r.status === "passed").length;
+    s.rulesNotApplicable = report.rules.filter((r) => r.status === "inapplicable").length;
+  }
+  report.summary.framesEntered = entered.length;
+  report.summary.iframesNotEntered = skipped.length;
+  return report;
 }
 
 /* ---------- shaping ---------- */
@@ -167,8 +257,11 @@ function shape(report, { includeReview, maxPerRule, includePassed }, notes = [])
     rules.push(entry);
   }
   const s = report.summary;
+  if (s.framesEntered > 0) {
+    notes.push(`${s.framesEntered} same-origin frame(s) were scanned too; their findings carry selectors like "iframe#x >>> button", and page-level checks (language, title, h1, landmarks, skip link, heading order) apply to the top document only.`);
+  }
   if (s.iframesNotEntered > 0) {
-    notes.push(`${s.iframesNotEntered} <iframe>/<frame> element(s) were not entered; the report covers the top document only. Scan each frame's URL separately.`);
+    notes.push(`${s.iframesNotEntered} cross-origin frame(s) were not entered: third-party content this page's author cannot change. Scan their URLs separately if they are yours.`);
   }
   return {
     url: report.url,

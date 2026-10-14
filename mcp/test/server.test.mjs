@@ -51,7 +51,19 @@ try {
   const before = parse(await call("scan_html", { html: '<main><img src="a.png" width="120" height="80"><iframe title="ad" src="about:blank"></iframe></main>', include_passed: true }));
   const imgBefore = before.rules.find((r) => r.id === "img-alt");
   check(imgBefore?.status === "failed" && imgBefore.checked === 1, `one image, no alt → img-alt ${imgBefore?.status}, checked ${imgBefore?.checked}`);
-  check((before.notes || []).some((n) => /fragment/.test(n)) && before.summary.iframesNotEntered === 1 && before.notes.some((n) => /iframe/.test(n)), "fragment + iframe → notes say fragment and frame not entered");
+  check((before.notes || []).some((n) => /fragment/.test(n)) && before.summary.framesEntered === 1 && before.notes.some((n) => /same-origin frame/.test(n)), "fragment + blank iframe → notes say fragment and frame entered");
+
+  // Same-origin frames are scanned and their findings relocated; cross-origin frames are counted, not entered.
+  const framed = parse(await call("scan_html", {
+    html: '<main><h1>t</h1><iframe id="chat" title="chat" srcdoc="<button></button><img src=b.png width=50 height=50>"></iframe><iframe title="ad" src="data:text/html,<button></button>"></iframe></main>',
+    include_passed: true,
+  }));
+  const btn = framed.rules.find((r) => r.id === "button-name");
+  check(btn?.violations?.[0]?.selector?.includes("#chat >>> ") && btn.violations[0].selector.endsWith("button"), `button inside srcdoc frame → ${btn?.violations?.[0]?.selector}`);
+  check(framed.rules.find((r) => r.id === "img-alt")?.violations?.[0]?.selector?.includes(">>>"), "img inside the frame → img-alt violation with frame prefix");
+  check(framed.summary.framesEntered === 1 && framed.summary.iframesNotEntered === 1, `frames: entered ${framed.summary.framesEntered}, not entered ${framed.summary.iframesNotEntered}`);
+  check(!framed.rules.some((r) => r.id === "page-has-h1" && r.violations?.length), "page-level rules are not applied to the frame document");
+  check((framed.notes || []).some((n) => /cross-origin/.test(n)), "cross-origin frame → note");
   const hidden = parse(await call("scan_html", { html: '<main><img src="a.png" width="120" height="80" aria-hidden="true"></main>', include_passed: true }));
   const imgHidden = hidden.rules.find((r) => r.id === "img-alt");
   check(imgHidden?.status === "passed" && imgHidden.checked === 1 && imgHidden.excluded === 1, `image hidden with aria-hidden → img-alt ${imgHidden?.status}, checked ${imgHidden?.checked}, excluded ${imgHidden?.excluded}`);
