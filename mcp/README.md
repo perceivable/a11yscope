@@ -7,6 +7,8 @@ clients can audit the pages they build and fix what they find.
 
 Runs locally in headless Chrome. Nothing is uploaded, no account, no telemetry.
 
+[![a11yscope on npm](https://img.shields.io/npm/v/a11yscope-mcp)](https://www.npmjs.com/package/a11yscope-mcp) [![a11yscope MCP server on Glama](https://glama.ai/mcp/servers/perceivable/a11yscope/badges/score.svg)](https://glama.ai/mcp/servers/perceivable/a11yscope)
+
 ## Install
 
 **Claude Code**
